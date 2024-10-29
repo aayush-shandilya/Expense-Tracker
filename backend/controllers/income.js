@@ -1,5 +1,3 @@
-
-// controllers/income.js
 const Income = require("../models/incomeModel");
 
 exports.addIncome = async (req, res) => {

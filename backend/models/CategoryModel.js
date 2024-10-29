@@ -1,6 +1,3 @@
-
-
-// backend/models/CategoryModel.js
 const mongoose = require('mongoose');
 
 const CategorySchema = new mongoose.Schema({

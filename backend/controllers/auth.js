@@ -1,4 +1,3 @@
-// controllers/auth.js
 const User = require('../models/UserModel');
 const jwt = require('jsonwebtoken');
 
@@ -8,10 +7,6 @@ const generateToken = (id) => {
         expiresIn: '30d'
     });
 };
-
-// @desc    Register user
-// @route   POST /api/v1/auth/register
-// @access  Public
 exports.register = async (req, res) => {
     try {
         const { name, email, password } = req.body;

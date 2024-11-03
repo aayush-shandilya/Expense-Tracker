@@ -1,557 +1,350 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import styled from 'styled-components';
+import {
+  Box,
+  Typography,
+  Container,
+  Paper,
+  Select,
+  MenuItem,
+  Grid,
+  Card,
+  CardContent,
+  IconButton,
+  Button,
+  CircularProgress,
+  Alert,
+  Divider,
+  List,
+  ListItem,
+  ListItemText,
+  ListItemSecondaryAction,
+  styled
+} from '@mui/material';
+import AddIcon from '@mui/icons-material/Add';
+import DeleteIcon from '@mui/icons-material/Delete';
 import { useGlobalContext } from '../../context/globalContext';
-import { InnerLayout } from '../../styles/Layouts';
-import { EXPENSE_CATEGORIES, getAllCategories, getCategoryIcon, getCategoryLabel } from '../../config/categories';
-import Button from '../Button/Button';
-//import { plus } from '../../utils/icon';
+import { getAllCategories, getCategoryIcon, getCategoryLabel } from '../../config/categories';
 import { updateCategories } from '../../config/categories';
 import AddCategoryModal from '../Modals/AddCategoryModels';
 import DeleteCategoryModal from '../Modals/DeleteCateoryModal';
-import { plus, trash } from '../../utils/icon';
 
+// Styled components
+const ContentWrapper = styled(Box)(({ theme }) => ({
+  padding: theme.spacing(3),
+}));
+
+const CategoryCard = styled(Paper)(({ theme }) => ({
+  padding: theme.spacing(3),
+  borderRadius: '20px',
+  backgroundColor: '#FCF6F9',
+  border: '2px solid #FFFFFF',
+  boxShadow: '0px 1px 15px rgba(0, 0, 0, 0.06)',
+  marginBottom: theme.spacing(3),
+}));
+
+const CategoryItem = styled(Card)(({ theme }) => ({
+  display: 'flex',
+  alignItems: 'center',
+  padding: theme.spacing(2),
+  marginBottom: theme.spacing(1),
+  backgroundColor: 'white',
+  borderRadius: '10px',
+  boxShadow: '0px 1px 10px rgba(0, 0, 0, 0.03)',
+}));
+
+const TransactionItem = styled(ListItem)(({ theme }) => ({
+  borderBottom: `1px solid ${theme.palette.divider}`,
+  padding: theme.spacing(2),
+  '&:last-child': {
+    borderBottom: 'none',
+  },
+}));
+
+const IconWrapper = styled(Box)(({ theme }) => ({
+  width: 100,
+  height: 100,
+  borderRadius: '20px',
+  backgroundColor: 'rgba(252, 246, 249, 0.6)',
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  border: '2px solid #FFFFFF',
+  marginRight: theme.spacing(3),
+}));
 
 function ExpensesCategory() {
-    const {
-        expenses,
-        getExpenses,
-        user,
-        loading,
-        error,
-        getCategories, // Add this from globalContext
-        customCategories // Add this from globalContext
-    } = useGlobalContext();
+  const {
+    expenses,
+    getExpenses,
+    user,
+    loading,
+    error,
+    getCategories,
+    customCategories
+  } = useGlobalContext();
 
-    const [selectedCategory, setSelectedCategory] = useState('all');
-    const [isAddModalOpen, setIsAddModalOpen] = useState(false);
-    // Add state for categories
-    const [categories, setCategories] = useState([]);
+  const [selectedCategory, setSelectedCategory] = useState('all');
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [categories, setCategories] = useState([]);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [selectedCategoryForDelete, setSelectedCategoryForDelete] = useState(null);
 
-    const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
-    const [selectedCategoryForDelete, setSelectedCategoryForDelete] = useState(null);
+  const allCategories = getAllCategories();
 
-
-    // All possible categories
-    const allCategories = getAllCategories();
-
-    // // Fetch expenses only once when component mounts or user changes
-    // useEffect(() => {
-    //     if (user) {
-    //         getExpenses();
-    //     }
-    // }, [user]);
-
-    // Fetch both expenses and categories when component mounts
-    useEffect(() => {
-        const fetchData = async () => {
-            if (user) {
-                await Promise.all([
-                    getExpenses(),
-                    getCategories()
-                ]);
-            }
-        };
-        fetchData();
-    }, [user]);
-
-    // Update categories when customCategories change
-    useEffect(() => {
-        const updatedCategories = updateCategories(customCategories);
-        setCategories(getAllCategories());
-    }, [customCategories]);
-
-    // Process category data with proper error handling and type checking
-    // const categoryData = useMemo(() => {
-    //     const initialData = allCategories.reduce((acc, category) => {
-    //         acc[category] = {
-    //             total: 0,
-    //             count: 0,
-    //             expenses: []
-    //         };
-    //         return acc;
-    //     }, {});
-
-    //     if (!Array.isArray(expenses) || expenses.length === 0) {
-    //         return initialData;
-    //     }
-
-    //     return expenses.reduce((acc, expense) => {
-    //         if (expense && typeof expense === 'object') {
-    //             const category = expense.category?.toLowerCase();
-    //             if (category && acc[category]) {
-    //                 const amount = parseFloat(expense.amount) || 0;
-    //                 acc[category].total += amount;
-    //                 acc[category].count += 1;
-    //                 acc[category].expenses.push(expense);
-    //             }
-    //         }
-    //         return acc;
-    //     }, initialData);
-    // }, [expenses, allCategories]);
-
-    const categoryData = useMemo(() => {
-        const initialData = allCategories.reduce((acc, category) => {
-            acc[category] = {
-                total: 0,
-                count: 0,
-                expenses: []
-            };
-            return acc;
-        }, {});
-    
-        if (!Array.isArray(expenses) || expenses.length === 0) {
-            return initialData;
-        }
-    
-        return expenses.reduce((acc, expense) => {
-            if (expense && typeof expense === 'object') {
-                // Handle multiple categories
-                const expenseCategories = Array.isArray(expense.categories) 
-                    ? expense.categories 
-                    : [expense.category]; // Fallback to single category if categories array not present
-    
-                expenseCategories.forEach(category => {
-                    const categoryKey = category?.toLowerCase();
-                    if (categoryKey && acc[categoryKey]) {
-                        const amount = parseFloat(expense.amount) || 0;
-                        // For multiple categories, divide the amount among categories
-                        //const amountPerCategory = amount / expenseCategories.length;
-                        
-                        acc[categoryKey].total += amount;
-                        acc[categoryKey].count += 1;
-                        acc[categoryKey].expenses.push({
-                            ...expense,
-                            //amount: amountPerCategory // Store the divided amount
-                            amount:amount
-                        });
-                    }
-                });
-            }
-            return acc;
-        }, initialData);
-    }, [expenses, allCategories]);
-
-    // Calculate selected category data with proper error handling
-    const selectedCategoryData = useMemo(() => {
-        if (selectedCategory === 'all') {
-            if (!Array.isArray(expenses)) {
-                return { total: 0, count: 0, expenses: [] };
-            }
-    
-            return {
-                total: expenses.reduce((sum, expense) => sum + (parseFloat(expense.amount) || 0), 0),
-                count: expenses.length,
-                expenses: expenses.map(expense => ({
-                    ...expense,
-                    categories: Array.isArray(expense.categories) 
-                        ? expense.categories.map(cat => getCategoryLabel(cat)).join(', ')
-                        : getCategoryLabel(expense.category)
-                }))
-            };
-        }
-    
-        return categoryData[selectedCategory] || { total: 0, count: 0, expenses: [] };
-    }, [selectedCategory, expenses, categoryData]);
-
-    const handleCategoryChange = (category) => {
-        setSelectedCategory(category);
+  useEffect(() => {
+    const fetchData = async () => {
+      if (user) {
+        await Promise.all([getExpenses(), getCategories()]);
+      }
     };
+    fetchData();
+  }, [user]);
 
-    if (!user) {
-        return (
-            <CategoryStyled>
-                <InnerLayout>
-                    <div className="error-message">
-                        Please log in to view category data.
-                    </div>
-                </InnerLayout>
-            </CategoryStyled>
-        );
+  useEffect(() => {
+    const updatedCategories = updateCategories(customCategories);
+    setCategories(getAllCategories());
+  }, [customCategories]);
+
+  const categoryData = useMemo(() => {
+    const initialData = allCategories.reduce((acc, category) => {
+      acc[category] = {
+        total: 0,
+        count: 0,
+        expenses: []
+      };
+      return acc;
+    }, {});
+
+    if (!Array.isArray(expenses) || expenses.length === 0) {
+      return initialData;
     }
 
+    return expenses.reduce((acc, expense) => {
+      if (expense && typeof expense === 'object') {
+        const expenseCategories = Array.isArray(expense.categories)
+          ? expense.categories
+          : [expense.category];
+
+        expenseCategories.forEach(category => {
+          const categoryKey = category?.toLowerCase();
+          if (categoryKey && acc[categoryKey]) {
+            const amount = parseFloat(expense.amount) || 0;
+            acc[categoryKey].total += amount;
+            acc[categoryKey].count += 1;
+            acc[categoryKey].expenses.push({
+              ...expense,
+              amount: amount
+            });
+          }
+        });
+      }
+      return acc;
+    }, initialData);
+  }, [expenses, allCategories]);
+
+  const selectedCategoryData = useMemo(() => {
+    if (selectedCategory === 'all') {
+      if (!Array.isArray(expenses)) {
+        return { total: 0, count: 0, expenses: [] };
+      }
+
+      return {
+        total: expenses.reduce((sum, expense) => sum + (parseFloat(expense.amount) || 0), 0),
+        count: expenses.length,
+        expenses: expenses.map(expense => ({
+          ...expense,
+          categories: Array.isArray(expense.categories)
+            ? expense.categories.map(cat => getCategoryLabel(cat)).join(', ')
+            : getCategoryLabel(expense.category)
+        }))
+      };
+    }
+
+    return categoryData[selectedCategory] || { total: 0, count: 0, expenses: [] };
+  }, [selectedCategory, expenses, categoryData]);
+
+  if (!user) {
     return (
-        <CategoryStyled>
-            <InnerLayout>
-            <div className="category-header">
-                    <h1>Expenses by Category</h1>
-                    <div className="header-actions">
-                        <Button
-                            name={'Add Category'}
-                            icon={plus}
-                            bPad={'.8rem 1.6rem'}
-                            bRad={'30px'}
-                            bg={'#FF8C00'}  // Direct color value
-                            
-                            color={'#fff'}
-                            onClick={() => setIsAddModalOpen(true)}
-                        />
-                        <select 
-                            value={selectedCategory}
-                            onChange={(e) => handleCategoryChange(e.target.value)}
-                            className="category-select"
-                        >
-                            <option value="all">All Categories</option>
-                            {categories.map(category => (
-                                <option key={category} value={category}>
-                                    {getCategoryLabel(category)}
-                                </option>
-                            ))}
-                        </select>
-                    </div>
-                </div>
-
-                <div className="category-management">
-                    <h3>Manage Categories</h3>
-                    <div className="category-list">
-                        {categories.filter(cat => cat !== 'all').map(category => (
-                            <div key={category} className="category-item">
-                                <div className="category-info">
-                                    <span className="category-icon">
-                                        {getCategoryIcon(category)}
-                                    </span>
-                                    <span className="category-label">
-                                        {getCategoryLabel(category)}
-                                    </span>
-                                </div>
-                                <Button
-                                    name={''}
-                                    icon={trash}
-                                    bPad={'.5rem'}
-                                    bRad={'50%'}
-                                    bg={'#ff000d'}
-                                    color={'#fff'}
-                                    onClick={() => {
-                                        setSelectedCategoryForDelete({
-                                            key: category,
-                                            label: getCategoryLabel(category)
-                                        });
-                                        setIsDeleteModalOpen(true);
-                                    }}
-                                />
-                            </div>
-                        ))}
-                    </div>
-                </div>
-
-                {error && <div className="error-message">{error}</div>}
-
-                {loading ? (
-                    <div className="loading">Loading...</div>
-                ) : (
-                    <div className="category-details">
-                        <div className="category-card">
-                            <div className="icon">
-                                {selectedCategory !== 'all' && getCategoryIcon(selectedCategory)}
-                            </div>
-                            <div className="details">
-                                <h2>
-                                    {selectedCategory === 'all' 
-                                        ? 'Total Expenses' 
-                                        : getCategoryLabel(selectedCategory)}
-                                </h2>
-                                <div className="info">
-                                    <p className="amount">
-                                        ₹{selectedCategoryData.total.toFixed(2).toLocaleString()}
-                                    </p>
-                                    <p className="count">
-                                        {selectedCategoryData.count} transactions
-                                    </p>
-                                </div>
-                            </div>
-                        </div>
-
-                        {selectedCategoryData.expenses.length > 0 ? (
-                            <div className="transactions-list">
-                                <h3>
-                                    Recent Transactions in {
-                                        selectedCategory === 'all' 
-                                            ? 'All Categories' 
-                                            : getCategoryLabel(selectedCategory)
-                                    }
-                                </h3>
-                                {/* {selectedCategoryData.expenses
-                                    .sort((a, b) => new Date(b.date) - new Date(a.date))
-                                    .slice(0, 5)
-                                    .map((expense) => (
-                                        <div key={expense._id} className="transaction-item">
-                                            <div className="transaction-info">
-                                                <p className="title">{expense.title}</p>
-                                                <p className="description">{expense.description}</p>
-                                                <p className="date">
-                                                    {new Date(expense.date).toLocaleDateString()}
-                                                </p>
-                                            </div>
-                                            <p className="amount">
-                                                ₹{parseFloat(expense.amount).toLocaleString()}
-                                            </p>
-                                        </div>
-                                    ))} */}
-                                    {selectedCategoryData.expenses
-                                    .sort((a, b) => new Date(b.date) - new Date(a.date))
-                                    .slice(0, 5)
-                                    .map((expense) => (
-                                        <div key={expense._id} className="transaction-item">
-                                            <div className="transaction-info">
-                                                <p className="title">{expense.title}</p>
-                                                <p className="description">{expense.description}</p>
-                                                <p className="date">
-                                                    {new Date(expense.date).toLocaleDateString()}
-                                                </p>
-                                                <p className="categories">
-                                                    Categories: {
-                                                        // If expense has multiple categories (array)
-                                                        Array.isArray(expense.categories) && expense.categories.length > 0
-                                                            ? expense.categories.map(cat => getCategoryLabel(cat)).join(', ')
-                                                        // If expense has single category
-                                                        : expense.category
-                                                            ? getCategoryLabel(expense.category)
-                                                        // Fallback if no category is found
-                                                        : "Uncategorized"
-                                                    }
-                                                </p>
-                                            </div>
-                                            <p className="amount">
-                                                ₹{parseFloat(expense.amount).toLocaleString()} 
-                                            </p>
-                                        </div>
-                                    ))}
-                            </div>
-                        ) : (
-                            <div className="no-transactions">
-                                No transactions found for {
-                                    selectedCategory === 'all' 
-                                        ? 'any category' 
-                                        : getCategoryLabel(selectedCategory)
-                                }
-                            </div>
-                        )}
-                    </div>
-                )}
-
-                <AddCategoryModal 
-                    isOpen={isAddModalOpen}
-                    onClose={() => setIsAddModalOpen(false)}
-                />
-                <DeleteCategoryModal 
-                    isOpen={isDeleteModalOpen}
-                    onClose={() => {
-                        setIsDeleteModalOpen(false);
-                        setSelectedCategoryForDelete(null);
-                    }}
-                    category={selectedCategoryForDelete}
-                />
-            </InnerLayout>
-        </CategoryStyled>
+      <Container>
+        <Alert severity="warning" sx={{ mt: 2 }}>
+          Please log in to view category data.
+        </Alert>
+      </Container>
     );
+  }
+
+  return (
+    <Container maxWidth="lg">
+      <ContentWrapper>
+        {/* Header Section */}
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+          <Typography variant="h4" component="h1">
+            
+          </Typography>
+          <Box sx={{ display: 'flex', gap: 2 }}>
+            <Button
+              variant="contained"
+              color="primary"
+              startIcon={<AddIcon />}
+              onClick={() => setIsAddModalOpen(true)}
+              sx={{
+                borderRadius: '30px',
+                bgcolor: '#FF8C00',
+                '&:hover': {
+                  bgcolor: '#FF7000',
+                },
+              }}
+            >
+              Add Category
+            </Button>
+            <Select
+              value={selectedCategory}
+              onChange={(e) => setSelectedCategory(e.target.value)}
+              sx={{
+                minWidth: 200,
+                bgcolor: 'background.paper',
+                borderRadius: '10px',
+              }}
+            >
+              <MenuItem value="all">All Categories</MenuItem>
+              {categories.map(category => (
+                <MenuItem key={category} value={category}>
+                  {getCategoryLabel(category)}
+                </MenuItem>
+              ))}
+            </Select>
+          </Box>
+        </Box>
+
+        {error && (
+          <Alert severity="error" sx={{ mb: 3 }}>
+            {error}
+          </Alert>
+        )}
+
+        {loading ? (
+          <Box display="flex" justifyContent="center" p={3}>
+            <CircularProgress />
+          </Box>
+        ) : (
+          <>
+            {/* Category Management Section */}
+            <CategoryCard>
+              <Typography variant="h5" gutterBottom>
+                Manage Categories
+              </Typography>
+              <Grid container spacing={2}>
+                {categories.filter(cat => cat !== 'all').map(category => (
+                  <Grid item xs={12} sm={6} md={4} key={category}>
+                    <CategoryItem>
+                      <Box sx={{ display: 'flex', alignItems: 'center', flex: 1 }}>
+                        <Box sx={{ mr: 2 }}>{getCategoryIcon(category)}</Box>
+                        <Typography>{getCategoryLabel(category)}</Typography>
+                      </Box>
+                      <IconButton
+                        color="error"
+                        onClick={() => {
+                          setSelectedCategoryForDelete({
+                            key: category,
+                            label: getCategoryLabel(category)
+                          });
+                          setIsDeleteModalOpen(true);
+                        }}
+                      >
+                        <DeleteIcon />
+                      </IconButton>
+                    </CategoryItem>
+                  </Grid>
+                ))}
+              </Grid>
+            </CategoryCard>
+
+            {/* Category Details Section */}
+            <CategoryCard>
+              <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
+                <IconWrapper>
+                  {selectedCategory !== 'all' && getCategoryIcon(selectedCategory)}
+                </IconWrapper>
+                <Box>
+                  <Typography variant="h5" gutterBottom>
+                    {selectedCategory === 'all' ? 'Total Expenses' : getCategoryLabel(selectedCategory)}
+                  </Typography>
+                  <Typography variant="h4" color="error.main" gutterBottom>
+                    ₹{selectedCategoryData.total.toFixed(2).toLocaleString()}
+                  </Typography>
+                  <Typography variant="subtitle1" color="text.secondary">
+                    {selectedCategoryData.count} transactions
+                  </Typography>
+                </Box>
+              </Box>
+
+              <Divider sx={{ my: 2 }} />
+
+              {selectedCategoryData.expenses.length > 0 ? (
+                <>
+                  <Typography variant="h6" gutterBottom>
+                    Recent Transactions in {selectedCategory === 'all' ? 'All Categories' : getCategoryLabel(selectedCategory)}
+                  </Typography>
+                  <List>
+                    {selectedCategoryData.expenses
+                      .sort((a, b) => new Date(b.date) - new Date(a.date))
+                      .slice(0, 5)
+                      .map((expense) => (
+                        <TransactionItem key={expense._id}>
+                          <ListItemText
+                            primary={expense.title}
+                            secondary={
+                              <Box>
+                                <Typography variant="body2">{expense.description}</Typography>
+                                <Typography variant="body2" color="text.secondary">
+                                  {new Date(expense.date).toLocaleDateString()}
+                                </Typography>
+                                <Typography variant="body2" color="text.secondary">
+                                  Categories: {Array.isArray(expense.categories) && expense.categories.length > 0
+                                    ? expense.categories.map(cat => getCategoryLabel(cat)).join(', ')
+                                    : expense.category
+                                      ? getCategoryLabel(expense.category)
+                                      : "Uncategorized"}
+                                </Typography>
+                              </Box>
+                            }
+                          />
+                          <ListItemSecondaryAction>
+                            <Typography variant="subtitle1" color="error">
+                              ₹{parseFloat(expense.amount).toLocaleString()}
+                            </Typography>
+                          </ListItemSecondaryAction>
+                        </TransactionItem>
+                      ))}
+                  </List>
+                </>
+              ) : (
+                <Alert severity="info">
+                  No transactions found for {selectedCategory === 'all'
+                    ? 'any category'
+                    : getCategoryLabel(selectedCategory)}
+                </Alert>
+              )}
+            </CategoryCard>
+          </>
+        )}
+
+        {/* Modals */}
+        <AddCategoryModal
+          isOpen={isAddModalOpen}
+          onClose={() => setIsAddModalOpen(false)}
+        />
+        <DeleteCategoryModal
+          isOpen={isDeleteModalOpen}
+          onClose={() => {
+            setIsDeleteModalOpen(false);
+            setSelectedCategoryForDelete(null);
+          }}
+          category={selectedCategoryForDelete}
+        />
+      </ContentWrapper>
+    </Container>
+  );
 }
 
-const CategoryStyled = styled.div`
-    .category-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 2rem;
-
-        h1 {
-            font-size: 2.5rem;
-            font-weight: 600;
-        }
-
-        .header-actions {
-            display: flex;
-            gap: 1rem;
-            align-items: center;
-        }
-    }
-
-    .category-select {
-        padding: 0.8rem 1.5rem;
-        border: 2px solid #FFFFFF;
-        border-radius: 10px;
-        background: rgba(252, 246, 249, 0.78);
-        font-size: 1.1rem;
-        outline: none;
-        color: rgba(34, 34, 96, 1);
-        cursor: pointer;
-        transition: all 0.3s ease;
-
-        &:hover {
-            background: #FCF6F9;
-        }
-    }
-
-    .category-details {
-        background: #FCF6F9;
-        border: 2px solid #FFFFFF;
-        box-shadow: 0px 1px 15px rgba(0, 0, 0, 0.06);
-        border-radius: 20px;
-        padding: 2rem;
-        
-        .category-card {
-            display: flex;
-            align-items: center;
-            gap: 2rem;
-            margin-bottom: 2rem;
-
-            .icon {
-                width: 100px;
-                height: 100px;
-                border-radius: 20px;
-                background: rgba(252, 246, 249, 0.6);
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                border: 2px solid #FFFFFF;
-            }
-
-            .details {
-                flex: 1;
-
-                h2 {
-                    font-size: 2rem;
-                    margin-bottom: 0.5rem;
-                    color: rgba(34, 34, 96, 1);
-                }
-
-                .info {
-                    display: flex;
-                    gap: 2rem;
-                    
-                    .amount {
-                        font-size: 1.5rem;
-                        font-weight: 600;
-                        color: var(--color-red);
-                    }
-
-                    .count {
-                        font-size: 1.2rem;
-                        color: rgba(34, 34, 96, 0.6);
-                    }
-                }
-            }
-        }
-
-        .transactions-list {
-            margin-top: 2rem;
-            
-            h3 {
-                font-size: 1.3rem;
-                margin-bottom: 1rem;
-                color: rgba(34, 34, 96, 1);
-            }
-
-            .transaction-item {
-                display: flex;
-                justify-content: space-between;
-                align-items: center;
-                padding: 1rem;
-                border-bottom: 1px solid rgba(34, 34, 96, 0.1);
-
-                &:last-child {
-                    border-bottom: none;
-                }
-
-                .transaction-info {
-                    .title {
-                        font-weight: 500;
-                        color: rgba(34, 34, 96, 1);
-                        margin-bottom: 0.2rem;
-                    }
-
-                    .description {
-                        font-size: 0.9rem;
-                        color: rgba(34, 34, 96, 0.8);
-                        margin-bottom: 0.2rem;
-                    }
-
-                    .date {
-                        font-size: 0.9rem;
-                        color: rgba(34, 34, 96, 0.6);
-                    }
-                }
-
-                .amount {
-                    font-weight: 600;
-                    color: var(--color-red);
-                }
-            }
-        }
-
-        .no-transactions {
-            text-align: center;
-            padding: 2rem;
-            color: rgba(34, 34, 96, 0.6);
-            font-size: 1.1rem;
-        }
-    }
-
-    .error-message {
-        background: #ffebee;
-        color: #c62828;
-        padding: 1rem;
-        border-radius: 10px;
-        margin: 1rem 0;
-        text-align: center;
-    }
-
-    .loading {
-        background: #FCF6F9;
-        padding: 2rem;
-        border-radius: 20px;
-        text-align: center;
-        box-shadow: 0px 1px 15px rgba(0, 0, 0, 0.06);
-    }
-    .category-management {
-        margin-top: 2rem;
-        background: #FCF6F9;
-        border: 2px solid #FFFFFF;
-        box-shadow: 0px 1px 15px rgba(0, 0, 0, 0.06);
-        border-radius: 20px;
-        padding: 2rem;
-
-        h3 {
-            font-size: 1.5rem;
-            color: var(--primary-color);
-            margin-bottom: 1.5rem;
-        }
-
-        .category-list {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-            gap: 1rem;
-        }
-
-        .category-item {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 1rem;
-            background: white;
-            border-radius: 10px;
-            box-shadow: 0px 1px 10px rgba(0, 0, 0, 0.03);
-
-            .category-info {
-                display: flex;
-                align-items: center;
-                gap: 1rem;
-
-                .category-icon {
-                    width: 30px;
-                    height: 30px;
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                }
-
-                .category-label {
-                    color: rgba(34, 34, 96, 0.9);
-                    font-weight: 500;
-                }
-            }
-        }
-    }
-`;
-
-
 export default ExpensesCategory;
-

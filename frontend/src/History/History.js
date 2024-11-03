@@ -1,8 +1,28 @@
-
 import React, { useEffect, useState } from 'react';
-import styled from 'styled-components';
+import { 
+  Box, 
+  Typography, 
+  Paper,
+  Stack,
+  styled 
+} from '@mui/material';
 import { useGlobalContext } from '../context/globalContext';
 import { useAuth } from '../context/AuthContext';
+
+// Styled components using MUI styled
+const HistoryItem = styled(Paper)(({ theme }) => ({
+  background: '#FCF6F9',
+  border: '1px solid #FFFFFF',
+  boxShadow: '0px 1px 8px rgba(0, 0, 0, 0.06)',
+  padding: theme.spacing(0.75),
+  borderRadius: '8px',
+}));
+
+const LoadingItem = styled(Box)({
+  height: '2.5rem',
+  background: '#eee',
+  borderRadius: '8px',
+});
 
 const History = () => {
     const { transactionHistory, loading, error } = useGlobalContext();
@@ -17,138 +37,117 @@ const History = () => {
 
     if (loading) {
         return (
-            <HistoryStyled>
-                <h2>Recent History</h2>
-                <div className="loading">
+            <Box>
+                <Typography variant="subtitle2" sx={{ 
+                    mb: 1,
+                    fontSize: '0.9rem',
+                    fontWeight: 500
+                }}>
+                    Recent History
+                </Typography>
+                <Stack spacing={1}>
                     {[1, 2, 3].map((i) => (
-                        <div key={i} className="loading-item" />
+                        <LoadingItem key={i} />
                     ))}
-                </div>
-            </HistoryStyled>
+                </Stack>
+            </Box>
         );
     }
 
     if (error) {
         return (
-            <HistoryStyled>
-                <h2>Recent History</h2>
-                <div className="error">
+            <Box>
+                <Typography variant="subtitle2" sx={{ mb: 1, fontSize: '0.9rem' }}>
+                    Recent History
+                </Typography>
+                <Paper sx={{
+                    background: '#fee',
+                    color: 'red',
+                    p: 1,
+                    borderRadius: 1,
+                    fontSize: '0.8rem'
+                }}>
                     {error}
-                </div>
-            </HistoryStyled>
+                </Paper>
+            </Box>
         );
     }
 
     if (!history.length) {
         return (
-            <HistoryStyled>
-                <h2>Recent History</h2>
-                <div className="empty">
+            <Box>
+                <Typography variant="subtitle2" sx={{ mb: 1, fontSize: '0.9rem' }}>
+                    Recent History
+                </Typography>
+                <Paper sx={{
+                    background: '#FCF6F9',
+                    p: 1,
+                    borderRadius: 1,
+                    color: 'text.secondary',
+                    textAlign: 'center',
+                    fontSize: '0.8rem'
+                }}>
                     No transactions yet
-                </div>
-            </HistoryStyled>
+                </Paper>
+            </Box>
         );
     }
 
     return (
-        <HistoryStyled>
-            <h2>Recent History</h2>
-            {history.map((item) => {
-                const { _id, title, amount, type, createdAt } = item;
-                const isExpense = type === 'expense';
+        <Box>
+            <Typography variant="subtitle2" sx={{ 
+                mb: 1,
+                fontSize: '0.9rem',
+                fontWeight: 500
+            }}>
+                Recent History
+            </Typography>
+            <Stack spacing={0.75}>
+                {history.map((item) => {
+                    const { _id, title, amount, type, createdAt } = item;
+                    const isExpense = type === 'expense';
 
-                return (
-                    <div key={_id} className="history-item">
-                        <div className="inner-content">
-                            <div className="text">
-                                <p className="title">{title}</p>
-                                <p className="date">
-                                    {new Date(createdAt).toLocaleDateString()}
-                                </p>
-                            </div>
-                            <div className={`amount ${isExpense ? 'expense' : 'income'}`}>
-                                {isExpense 
-                                    ? `-₹${amount <= 0 ? 0 : amount.toLocaleString()}`
-                                    : `+₹${amount <= 0 ? 0 : amount.toLocaleString()}`
-                                }
-                            </div>
-                        </div>
-                    </div>
-                );
-            })}
-        </HistoryStyled>
+                    return (
+                        <HistoryItem key={_id}>
+                            <Box sx={{
+                                display: 'flex',
+                                justifyContent: 'space-between',
+                                alignItems: 'center'
+                            }}>
+                                <Box>
+                                    <Typography sx={{
+                                        fontSize: '0.85rem',
+                                        fontWeight: 500,
+                                        color: 'text.primary',
+                                        lineHeight: 1.2
+                                    }}>
+                                        {title}
+                                    </Typography>
+                                    <Typography sx={{
+                                        fontSize: '0.7rem',
+                                        color: 'text.secondary',
+                                        mt: 0.25
+                                    }}>
+                                        {new Date(createdAt).toLocaleDateString()}
+                                    </Typography>
+                                </Box>
+                                <Typography sx={{
+                                    fontSize: '0.85rem',
+                                    fontWeight: 500,
+                                    color: isExpense ? 'error.main' : 'success.main',
+                                }}>
+                                    {isExpense 
+                                        ? `-₹${amount <= 0 ? 0 : amount.toLocaleString()}`
+                                        : `+₹${amount <= 0 ? 0 : amount.toLocaleString()}`
+                                    }
+                                </Typography>
+                            </Box>
+                        </HistoryItem>
+                    );
+                })}
+            </Stack>
+        </Box>
     );
 };
-
-const HistoryStyled = styled.div`
-    h2 {
-        margin: 1rem 0;
-        font-size: 1.2rem;
-    }
-
-    .history-item {
-        background: #FCF6F9;
-        border: 2px solid #FFFFFF;
-        box-shadow: 0px 1px 15px rgba(0, 0, 0, 0.06);
-        padding: 1rem;
-        border-radius: 20px;
-        margin-bottom: 1rem;
-
-        .inner-content {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-
-            .text {
-                .title {
-                    font-size: 1.2rem;
-                    font-weight: 600;
-                }
-                .date {
-                    font-size: 0.8rem;
-                    color: var(--color-gray);
-                    margin-top: 0.2rem;
-                }
-            }
-
-            .amount {
-                font-weight: 600;
-                font-size: 1.2rem;
-                
-                &.expense {
-                    color: red;
-                }
-                
-                &.income {
-                    color: var(--color-green);
-                }
-            }
-        }
-    }
-
-    .loading {
-        .loading-item {
-            height: 4rem;
-            background: #eee;
-            border-radius: 20px;
-            margin-bottom: 1rem;
-        }
-    }
-
-    .error {
-        background: #fee;
-        color: red;
-        padding: 1rem;
-        border-radius: 20px;
-    }
-
-    .empty {
-        background: #FCF6F9;
-        padding: 1rem;
-        border-radius: 20px;
-        color: var(--color-gray);
-        text-align: center;
-    }
-`;
 
 export default History;

@@ -1,292 +1,219 @@
-// import styled from 'styled-components'
-// import avatar from '../../img/avatar.png'
-// import { signout } from '../../utils/icon'
-// import { menuItems } from '../../utils/menuItems'
-// import { dollar } from  '../../utils/icon';
-// import { useGlobalContext } from '../../context/globalContext';
-// //import { act, useState } from 'react'
-// function Navigation( {active, setActive})
-// {
-//     const {totalBalance} = useGlobalContext()
+import React from 'react';
+import { 
+  Drawer, 
+  List, 
+  ListItem, 
+  ListItemIcon, 
+  ListItemText,
+  Avatar,
+  Typography,
+  Box,
+  Divider,
+  styled,
+  useTheme,
+  useMediaQuery
+} from '@mui/material';
+import LogoutIcon from '@mui/icons-material/Logout';
+import AccountCircleIcon from '@mui/icons-material/AccountCircle';
+import { useNavigate } from 'react-router-dom';
+import { useGlobalContext } from '../../context/globalContext';
+import { useAuth } from '../../context/AuthContext';
+import { menuItems } from '../../utils/menuItems';
+import avatar from '../../img/avatar.png';
 
-//     return(
-//                         //the div is named as NavStyled
-//         <NavStyled>
-//             <div className="user-con">
-//                 <img src={avatar} alt=""/>
-//                 <div className="text">
-//                     <h2>Ayush Shandilya</h2>
-//                     <p>
-//                         {dollar} {totalBalance()}
-//                     </p>
-//                 </div>
-//             </div>
-//             <ul className="menu-items">
-//                 {menuItems.map((item) => {
-//                     return <li
-//                         key={item.id}
-//                         onClick={() => setActive(item.id)}
-//                         className={active === item.id ? 'active': ''}
-//                     >
-//                         {item.icon}
-//                         <span>{item.title}</span>
-//                     </li>
-//                 })}
-//             </ul>
-//             <div className="bottom-nav">
-//                 <li>
-//                     {signout} sign out
-//                 </li>
-//             </div>
-//         </NavStyled>
-//     )
-// }
+const getDrawerWidth = (screenWidth) => {
+  if (screenWidth < 600) return '200px';
+  if (screenWidth < 960) return '220px';
+  return '250px';
+};
+const StyledDrawer = styled(Drawer)(({ theme, drawerwidth }) => ({
+  width: drawerwidth,
+  flexShrink: 0,
+  '& .MuiDrawer-paper': {
+    width: drawerwidth,
+    height: '100%',
+    margin:0,
+    padding: theme.spacing(2),
+    position: 'static',
+   
+  }
+}));
 
-// const NavStyled = styled.nav`
-//     padding: 2rem 1.5rem;
-//     width: 374px;
-//     height: 100vh;
-//     background: rgba(252, 246, 249, 0.78);
-//     border: 3px solid #FFFFFF;
-//     backdrop-filter: blur(4.5px);
-//     border-radius: 32px;
-//     display: flex;
-//     flex-direction: column;
-//     justify-content: space-between;
-//     gap: 2rem;
-//     .user-con{
-//         height: 100px;
-//         display: flex;
-//         align-items: center;
-//         gap: 1rem;
-//         img{
-//             width: 80px;
-//             height: 80px;
-//             border-radius: 50%;
-//             object-fit: cover;
-//             background: #fcf6f9;
-//             border: 2px solid #FFFFFF;
-//             padding: .2rem;
-//             box-shadow: 0px 1px 17px rgba(0, 0, 0, 0.06);
-//         }
-//         h2{
-//             color: rgba(34, 34, 96, 1);
-//         }
-//         p{
-//             color: rgba(34, 34, 96, .6);
-//         }
-//     }
+const DrawerContent = styled(Box)(({ theme }) => ({
+  height: '100%',
+  display: 'flex',
+  flexDirection: 'column',
+}));
 
-//     .menu-items{
-//         flex: 1;
-//         display: flex;
-//         flex-direction: column;
-//         li{
-//             display: grid;
-//             grid-template-columns: 40px auto;
-//             align-items: center;
-//             margin: .6rem 0;
-//             font-weight: 500;
-//             cursor: pointer;
-//             transition: all .4s ease-in-out;
-//             color: rgba(34, 34, 96, .6);
-//             padding-left: 1rem;
-//             position: relative;
-//             i{
-//                 color: rgba(34, 34, 96, 0.6);
-//                 font-size: 1.4rem;
-//                 transition: all .4s ease-in-out;
-//             }
-//         }
-//     }
+const UserSection = styled(Box)(({ theme }) => ({
+  display: 'flex',
+  alignItems: 'center',
+  gap: theme.spacing(1.5),
+  marginBottom: theme.spacing(2),
+}));
 
-//     .active{
-//         color: rgba(34, 34, 96, 1) !important;
-//         i{
-//             color: rgba(34, 34, 96, 1) !important;
-//         }
-//         &::before{
-//             content: "";
-//             position: absolute;
-//             left: 0;
-//             top: 0;
-//             width: 4px;
-//             height: 100%;
-//             background: #222260;
-//             border-radius: 0 10px 10px 0;
-//         }
-//     }
-// `;
+const UserAvatar = styled(Avatar)(({ theme }) => ({
+  width: '3.5rem',
+  height: '3.5rem',
+  border: '2px solid #FFFFFF',
+  padding: 2,
+  background: '#fcf6f9',
+  boxShadow: '0px 1px 17px rgba(0, 0, 0, 0.06)',
+  [theme.breakpoints.down('sm')]: {
+    width: '2.5rem',
+    height: '2.5rem',
+  }
+}));
 
-// export default Navigation
+const StyledListItem = styled(ListItem)(({ theme, active }) => ({
+  color: active ? 'rgba(34, 34, 96, 1)' : 'rgba(34, 34, 96, 0.6)',
+  borderLeft: active ? '4px solid #222260' : '4px solid transparent',
+  paddingLeft: theme.spacing(2),
+  marginBottom: theme.spacing(0.5),
+  '&:hover': {
+    backgroundColor: 'rgba(34, 34, 96, 0.1)',
+    color: 'rgba(34, 34, 96, 1)'
+  }
+}));
 
+function Navigation({ active, setActive, BaseContainer }) {
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+  const screenWidth = window.innerWidth;
+  const drawerWidth = getDrawerWidth(screenWidth);
 
+  const { totalBalance } = useGlobalContext();
+  const { user, logout } = useAuth();
+  const navigate = useNavigate();
 
-
-import styled from 'styled-components'
-import avatar from '../../img/avatar.png'
-import { signout } from '../../utils/icon'
-import { menuItems } from '../../utils/menuItems'
-import { dollar } from '../../utils/icon'
-import { useGlobalContext } from '../../context/globalContext'
-import { useAuth } from '../../context/AuthContext'
-import { useNavigate } from 'react-router-dom'
-
-function Navigation({ active, setActive }) {
-    const { totalBalance } = useGlobalContext()
-    const { user, logout } = useAuth()
-    const navigate = useNavigate()
-
-    const handleSignOut = async () => {
-        try {
-            await logout()
-            navigate('/login')
-        } catch (error) {
-            console.error('Logout failed:', error)
-        }
+  const handleSignOut = async () => {
+    try {
+      await logout();
+      navigate('/login');
+    } catch (error) {
+      console.error('Logout failed:', error);
     }
+  };
 
-    return (
-        <NavStyled>
-            <div className="user-con">
-                <img src={avatar} alt="User Avatar"/>
-                <div className="text">
-                    <h2>{user?.name || 'User'}</h2>
-                    <p>
-                        {dollar} {totalBalance()}
-                    </p>
-                </div>
-            </div>
-            <ul className="menu-items">
-                {menuItems.map((item) => {
-                    return <li
-                        key={item.id}
-                        onClick={() => setActive(item.id)}
-                        className={active === item.id ? 'active': ''}
-                    >
-                        {item.icon}
-                        <span>{item.title}</span>
-                    </li>
-                })}
-            </ul>
-            <div className="bottom-nav">
-                <li onClick={handleSignOut} className="sign-out">
-                    {signout} Sign Out
-                </li>
-            </div>
-        </NavStyled>
-    )
+  return (
+    <BaseContainer>
+    <StyledDrawer
+      variant="permanent"
+      anchor="left"
+      drawerwidth={drawerWidth}
+    >
+      <DrawerContent>
+        <UserSection>
+          <UserAvatar 
+            src={avatar} 
+            alt="User Avatar"
+            onError={(e) => {
+              e.target.src = '';
+              return true;
+            }}
+          >
+            <AccountCircleIcon sx={{ width: '60%', height: '60%' }} />
+          </UserAvatar>
+          <Box sx={{ minWidth: 0 }}> {/* Prevent text overflow */}
+            <Typography 
+              variant={isMobile ? "body1" : "h6"}
+              sx={{ 
+                color: 'rgba(34, 34, 96, 1)',
+                fontWeight: 500,
+                whiteSpace: 'nowrap',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis'
+              }}
+            >
+              {user?.name || 'User'}
+            </Typography>
+            <Typography 
+              variant={isMobile ? "body2" : "body1"}
+              sx={{ 
+                color: 'rgba(34, 34, 96, 0.6)',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 0.5,
+                whiteSpace: 'nowrap',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis'
+              }}
+            >
+              <span>₹</span> {totalBalance()}
+            </Typography>
+          </Box>
+        </UserSection>
+
+        <Divider sx={{ mb: 1.5 }} />
+
+        <List sx={{ 
+          flex: 1,
+          overflowY: 'auto',
+          '&::-webkit-scrollbar': {
+            width: '4px'
+          },
+          '&::-webkit-scrollbar-track': {
+            background: 'transparent'
+          },
+          '&::-webkit-scrollbar-thumb': {
+            background: 'rgba(34, 34, 96, 0.2)',
+            borderRadius: '4px'
+          }
+        }}>
+          {menuItems.map((item) => (
+            <StyledListItem
+              key={item.id}
+              onClick={() => setActive(item.id)}
+              active={active === item.id}
+              button
+            >
+              <ListItemIcon sx={{ 
+                color: active === item.id ? 'rgba(34, 34, 96, 1)' : 'rgba(34, 34, 96, 0.6)',
+                minWidth: isMobile ? 32 : 40
+              }}>
+                {item.icon}
+              </ListItemIcon>
+              <ListItemText 
+                primary={item.title}
+                primaryTypographyProps={{
+                  sx: { 
+                    fontWeight: active === item.id ? 500 : 400,
+                    fontSize: isMobile ? '0.875rem' : '1rem'
+                  }
+                }}
+              />
+            </StyledListItem>
+          ))}
+        </List>
+
+        <Box sx={{ mt: 'auto', pt: 1 }}>
+          <Divider />
+          <StyledListItem 
+            onClick={handleSignOut} 
+            button
+            sx={{ mt: 1 }}
+          >
+            <ListItemIcon sx={{ 
+              minWidth: isMobile ? 32 : 40,
+              color: 'rgba(34, 34, 96, 0.6)'
+            }}>
+              <LogoutIcon />
+            </ListItemIcon>
+            <ListItemText 
+              primary="Sign Out"
+              primaryTypographyProps={{
+                sx: { 
+                  color: 'rgba(34, 34, 96, 0.6)',
+                  fontSize: isMobile ? '0.875rem' : '1rem'
+                }
+              }}
+            />
+          </StyledListItem>
+        </Box>
+      </DrawerContent>
+    </StyledDrawer>
+    </BaseContainer>
+  );
 }
 
-const NavStyled = styled.nav`
-    padding: 2rem 1.5rem;
-    width: 374px;
-    height: 90vh;
-    background: rgba(252, 246, 249, 0.78);
-    border: 3px solid #FFFFFF;
-    backdrop-filter: blur(4.5px);
-    border-radius: 32px;
-    display: flex;
-    flex-direction: column;
-    justify-content: space-between;
-    gap: 2rem;
-
-    .user-con{
-        height: 100px;
-        display: flex;
-        align-items: center;
-        gap: 1rem;
-        img{
-            width: 80px;
-            height: 80px;
-            border-radius: 50%;
-            object-fit: cover;
-            background: #fcf6f9;
-            border: 2px solid #FFFFFF;
-            padding: .2rem;
-            box-shadow: 0px 1px 17px rgba(0, 0, 0, 0.06);
-        }
-        h2{
-            color: rgba(34, 34, 96, 1);
-        }
-        p{
-            color: rgba(34, 34, 96, .6);
-        }
-    }
-
-    .menu-items{
-        flex: 1;
-        display: flex;
-        flex-direction: column;
-        li{
-            display: grid;
-            grid-template-columns: 40px auto;
-            align-items: center;
-            margin: .6rem 0;
-            font-weight: 500;
-            cursor: pointer;
-            transition: all .4s ease-in-out;
-            color: rgba(34, 34, 96, .6);
-            padding-left: 1rem;
-            position: relative;
-            i{
-                color: rgba(34, 34, 96, 0.6);
-                font-size: 1.4rem;
-                transition: all .4s ease-in-out;
-            }
-        }
-    }
-
-    .active{
-        color: rgba(34, 34, 96, 1) !important;
-        i{
-            color: rgba(34, 34, 96, 1) !important;
-        }
-        &::before{
-            content: "";
-            position: absolute;
-            left: 0;
-            top: 0;
-            width: 4px;
-            height: 100%;
-            background: #222260;
-            border-radius: 0 10px 10px 0;
-        }
-    }
-
-    .sign-out {
-        cursor: pointer;
-        transition: all .4s ease-in-out;
-        color: rgba(34, 34, 96, .6);
-        padding: 0.5rem 1rem;
-        border-radius: 0.5rem;
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
-        
-        &:hover {
-            background: rgba(34, 34, 96, 0.1);
-            color: rgba(34, 34, 96, 1);
-        }
-    }
-
-    //  .sign-out {
-    //     cursor: pointer;
-    //     transition: all .4s ease-in-out;
-    //     color: rgba(34, 34, 96, .6);
-    //     padding: 0.5rem 1rem;
-    //     border-radius: 0.5rem;
-    //     display: flex;
-    //     align-items: center;
-    //     gap: 0.5rem;
-    //     margin-bottom: 5rem; /* Add space between sign-out and content below */
-    //     align-self: flex-end; /* Align to the right if parent is flex */
-        
-    //     &:hover {
-    //         background: rgba(34, 34, 96, 0.1);
-    //         color: rgba(34, 34, 96, 1);
-    //     }
-    // }
-`;
-
-export default Navigation
+export default Navigation;

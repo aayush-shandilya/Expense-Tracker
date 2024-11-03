@@ -1,218 +1,230 @@
-import React, { useEffect } from 'react'
-import styled from 'styled-components'
+import React, { useEffect } from 'react';
+import { 
+  Box, 
+  Grid, 
+  Paper, 
+  Typography, 
+  styled,
+  useTheme,
+  useMediaQuery 
+} from '@mui/material';
+
 import { useGlobalContext } from '../../context/globalContext';
 import History from '../../History/History';
-import { InnerLayout } from '../../styles/Layouts';
-import { dollar } from  '../../utils/icon';
 import Chart from '../Chart/Chart';
 
+// Styled components with optimized sizing
+const QuadrantPaper = styled(Paper)(({ theme }) => ({
+  background: '#FCF6F9',
+  border: '2px solid #FFFFFF',
+  boxShadow: '0px 1px 15px rgba(0, 0, 0, 0.06)',
+  borderRadius: '10px',
+  padding: theme.spacing(1),  // Reduced base padding
+  height: '100%',
+  display: 'flex',
+  flexDirection: 'column',
+}));
+
+const StatsBox = styled(Box)(({ theme }) => ({
+  display: 'flex',
+  flexDirection: 'column',
+  gap: theme.spacing(1),  // Reduced gap
+  height: '100%',
+  justifyContent: 'space-around',
+}));
+
+const StatItem = styled(Box)(({ theme }) => ({
+  background: '#FCF6F9',
+  border: '1px solid #FFFFFF',  // Reduced border thickness
+  boxShadow: '0px 1px 10px rgba(0, 0, 0, 0.06)',
+  borderRadius: '8px',
+  padding: theme.spacing(1),  // Reduced padding
+  textAlign: 'center',
+  minHeight: '60px',  // Set minimum height
+  display: 'flex',
+  flexDirection: 'column',
+  justifyContent: 'center',
+}));
+
+const AmountTypography = styled(Typography)(({ variant }) => ({
+  fontWeight: 600,  // Slightly reduced weight
+  fontSize: variant === 'balance' ? '1.25rem' : '1.1rem',  // Further reduced font sizes
+  color: variant === 'balance' ? 'var(--color-green)' : 'inherit',
+  opacity: variant === 'balance' ? 0.6 : 1,
+}));
 
 function Dashboard() {
-    const {totalExpense,incomes, expenses, totalIncome, totalBalance, getIncomes, getExpenses } = useGlobalContext()
+  const {
+    totalExpense,
+    incomes,
+    expenses,
+    totalIncome,
+    totalBalance,
+    getIncomes,
+    getExpenses
+  } = useGlobalContext();
 
-    useEffect(() => {
-        getIncomes()
-        getExpenses()
-    }, [])
+  useEffect(() => {
+    getIncomes();
+    getExpenses();
+  }, []);
 
-    return (
-        <DashboardStyled>
-            <InnerLayout>
-                <h1>All Transactions</h1>
-                <div className="stats-con">
-                    <div className="chart-con">
-                        <Chart />
-                        <div className="amount-con">
-                            <div className="income">
-                                <h2>Total Income</h2>
-                                <p>
-                                    {dollar} {totalIncome()}
-                                </p>
-                            </div>
-                            <div className="expense">
-                                <h2>Total Expense</h2>
-                                <p>
-                                    {dollar} {totalExpense()}
-                                </p>
-                            </div>
-                            <div className="balance">
-                                <h2>Total Balance</h2>
-                                <p>
-                                    {dollar} {totalBalance()}
-                                </p>
-                            </div>
-                        </div>
-                    </div>
-                    <div className="history-con">
-                        <History />
-                        <h2 className="salary-title">Min <span>Salary</span>Max</h2>
-                        <div className="salary-item">
-                            <p>
-                                ₹{Math.min(...incomes.map(item => item.amount))}
-                            </p>
-                            <p>
-                                ₹{Math.max(...incomes.map(item => item.amount))}
-                            </p>
-                        </div>
-                        <h2 className="salary-title">Min <span>Expense</span>Max</h2>
-                        <div className="salary-item">
-                            <p>
-                                ₹{Math.min(...expenses.map(item => item.amount))}
-                            </p>
-                            <p>
-                                ₹{Math.max(...expenses.map(item => item.amount))}
-                            </p>
-                        </div>
-                    </div>
-                </div>
-            </InnerLayout>
-        </DashboardStyled>
-    )
+
+
+  return (
+    <Grid container spacing={0} sx={{ height: '100%' }}>
+      {/* Quadrant 1: Chart */}
+      <Grid item xs={12} md={6} sx={{ 
+        height: '50%',
+        paddingLeft: '5px',
+        paddingRight: '5px',
+        paddingTop: '5px',
+        paddingBottom: '5px',
+      }}>
+        <QuadrantPaper>
+          <Box sx={{ flex: 1 }}>
+            <Chart />
+          </Box>
+        </QuadrantPaper>
+      </Grid>
+
+      {/* Quadrant 2: Financial Stats */}
+      <Grid item xs={12} md={6} sx={{ 
+        height: '50%',
+        paddingLeft: '5px',
+        paddingRight: '5px',
+        paddingTop: '5px',
+        paddingBottom: '5px',
+      }}>
+        <QuadrantPaper>
+          <StatsBox>
+            <StatItem>
+              <Typography variant="subtitle2" sx={{ fontSize: '0.8rem' }}>
+                Total Income
+              </Typography>
+              <AmountTypography>₹{totalIncome()}</AmountTypography>
+            </StatItem>
+            
+            <StatItem>
+              <Typography variant="subtitle2" sx={{ fontSize: '0.8rem' }}>
+                Total Expense
+              </Typography>
+              <AmountTypography>₹{totalExpense()}</AmountTypography>
+            </StatItem>
+            
+            <StatItem>
+              <Typography variant="subtitle2" sx={{ fontSize: '0.8rem' }}>
+                Total Balance
+              </Typography>
+              <AmountTypography variant="balance">₹{totalBalance()}</AmountTypography>
+            </StatItem>
+          </StatsBox>
+        </QuadrantPaper>
+      </Grid>
+
+      {/* Quadrant 3: Recent History */}
+      <Grid item xs={12} md={6} sx={{ 
+        height: '50%',
+        paddingLeft: '5px',
+        paddingRight: '5px',
+        paddingTop: '5px',
+        paddingBottom: '5px',
+      }}>
+        <QuadrantPaper>
+          <Box sx={{ 
+            flex: 1,
+            overflow: 'hidden',
+          }}>
+            <History />
+          </Box>
+        </QuadrantPaper>
+      </Grid>
+
+      {/* Quadrant 4: Min-Max Stats */}
+      <Grid item xs={12} md={6} sx={{ 
+        height: '50%',
+        paddingLeft: '5px',
+        paddingRight: '5px',
+        paddingTop: '5px',
+        paddingBottom: '5px',
+      }}>
+        <QuadrantPaper>
+          <Typography variant="subtitle2" sx={{ fontSize: '0.8rem', mb: 1 }}>
+            Income & Expense Range
+          </Typography>
+          
+          <Box sx={{ 
+            flex: 1, 
+            display: 'flex', 
+            flexDirection: 'column', 
+            gap: 1
+          }}>
+            {/* Salary Range */}
+            <Box>
+              <Typography variant="body2" sx={{ fontSize: '0.8rem', mb: 0.5 }}>
+                Salary Range
+              </Typography>
+              <StatItem>
+                <Box sx={{ 
+                  display: 'flex', 
+                  justifyContent: 'space-between',
+                  alignItems: 'center'
+                }}>
+                  <Box>
+                    <Typography variant="body2" sx={{ fontSize: '0.7rem' }}>
+                      Min
+                    </Typography>
+                    <Typography sx={{ fontSize: '0.9rem' }}>
+                      ₹{Math.min(...incomes.map(item => item.amount))}
+                    </Typography>
+                  </Box>
+                  <Box>
+                    <Typography variant="body2" sx={{ fontSize: '0.7rem' }}>
+                      Max
+                    </Typography>
+                    <Typography sx={{ fontSize: '0.9rem' }}>
+                      ₹{Math.max(...incomes.map(item => item.amount))}
+                    </Typography>
+                  </Box>
+                </Box>
+              </StatItem>
+            </Box>
+
+            {/* Expense Range */}
+            <Box>
+              <Typography variant="body2" sx={{ fontSize: '0.8rem', mb: 0.5 }}>
+                Expense Range
+              </Typography>
+              <StatItem>
+                <Box sx={{ 
+                  display: 'flex', 
+                  justifyContent: 'space-between',
+                  alignItems: 'center'
+                }}>
+                  <Box>
+                    <Typography variant="body2" sx={{ fontSize: '0.7rem' }}>
+                      Min
+                    </Typography>
+                    <Typography sx={{ fontSize: '0.9rem' }}>
+                      ₹{Math.min(...expenses.map(item => item.amount))}
+                    </Typography>
+                  </Box>
+                  <Box>
+                    <Typography variant="body2" sx={{ fontSize: '0.7rem' }}>
+                      Max
+                    </Typography>
+                    <Typography sx={{ fontSize: '0.9rem' }}>
+                      ₹{Math.max(...expenses.map(item => item.amount))}
+                    </Typography>
+                  </Box>
+                </Box>
+              </StatItem>
+            </Box>
+          </Box>
+        </QuadrantPaper>
+      </Grid>
+    </Grid>
+  );
 }
 
-const DashboardStyled = styled.div`
-    .stats-con {
-        display: grid;
-        grid-template-columns: repeat(6, 1fr);
-        gap: 2rem;
-        
-        .chart-con {
-            grid-column: 1 / 4;
-            height: 300px;
-            
-            .amount-con {
-                display: grid;
-                grid-template-columns: repeat(4, 1fr);
-                gap: 4rem;
-                margin-top: 2rem;
-                
-                .income, .expense {
-                    grid-column: span 2;
-                    background: #FCF6F9;
-                    border: 2px solid #FFFFFF;
-                    box-shadow: 0px 1px 15px rgba(0, 0, 0, 0.06);
-                    border-radius: 10px;
-                    padding: 1rem;
-                    
-                    p {
-                        font-size: 1.8rem; /* Reduced from 3.5rem */
-                        font-weight: 700;
-                        transition: all 0.3s ease-in-out;
-                    }
-                    
-                    /* Add a title above the amount */
-                    .title {
-                        font-size: 1rem;
-                        margin-bottom: 0.5rem;
-                        opacity: 0.8;
-                    }
-                }
-                
-                .balance {
-                    grid-column: 2 / 4;
-                    background: #FCF6F9;
-                    border: 2px solid #FFFFFF;
-                    box-shadow: 0px 1px 15px rgba(0, 0, 0, 0.06);
-                    border-radius: 20px;
-                    padding: 1.5rem;
-                    display: flex;
-                    flex-direction: column;
-                    justify-content: center;
-                    align-items: center;
-                    
-                    p {
-                        color: var(--color-green);
-                        opacity: 0.6;
-                        font-size: 2.5rem; /* Reduced from 4.5rem */
-                        font-weight: 400;
-                    }
-                    
-                    .title {
-                        font-size: 1.2rem;
-                        margin-bottom: 0.5rem;
-                    }
-                }
-            }
-        }
-        
-        .history-con {
-            grid-column: 4 / -2;
-            
-            h2 {
-                margin: 1rem 0;
-                display: flex;
-                align-items: center;
-                justify-content: space-between;
-                font-size: 1.5rem; /* Added size control */
-            }
-            
-            .salary-title {
-                font-size: 1.1rem; /* Reduced from 1.2rem */
-                
-                span {
-                    font-size: 1.4rem; /* Reduced from 1.8rem */
-                }
-            }
-            
-            .salary-item {
-                background: #FCF6F9;
-                border: 2px solid #FFFFFF;
-                box-shadow: 0px 1px 15px rgba(0, 0, 0, 0.06);
-                padding: 1rem;
-                border-radius: 20px;
-                display: flex;
-                justify-content: space-between;
-                align-items: center;
-                
-                margin-bottom: 1rem;
-                
-                p {
-                    font-weight: 600;
-                    font-size: 1.2rem; /* Reduced from 1.6rem */
-                }
-            }
-        }
-    }
-
-    /* Add media queries for responsiveness */
-    @media (max-width: 1000px) {
-        .stats-con {
-            gap: 1.5rem;
-            
-            .amount-con {
-                gap: 1.5rem;
-                
-                .income p, .expense p {
-                    font-size: 1.5rem;
-                }
-                
-                .balance p {
-                    font-size: 2rem;
-                }
-            }
-        }
-    }
-
-    @media (max-width: 768px) {
-        .stats-con {
-            grid-template-columns: 1fr;
-            
-            .chart-con {
-                grid-column: 1 / -1;
-                
-                .amount-con {
-                    grid-template-columns: repeat(2, 1fr);
-                    
-                    .balance {
-                        grid-column: 1 / -1;
-                    }
-                }
-            }
-            
-            .history-con {
-                grid-column: 1 / -1;
-            }
-        }
-    }
-`;
-export default Dashboard
+export default Dashboard;

@@ -30,11 +30,14 @@ const StyledDrawer = styled(Drawer)(({ theme, drawerwidth }) => ({
   width: drawerwidth,
   flexShrink: 0,
   '& .MuiDrawer-paper': {
-    width: drawerwidth,
+    width: '100%',
     height: '100%',
     margin:0,
     padding: theme.spacing(2),
-    position: 'static',
+    position: 'fixed',
+    backgroundColor: theme.palette.background.default, // Added background color
+    borderRight: `1px solid ${theme.palette.divider}`, // Added border
+    overflow: 'hidden' 
    
   }
 }));

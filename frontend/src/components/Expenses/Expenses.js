@@ -75,20 +75,20 @@ const ExpenseItem = ({ id, title, amount, date, category, categories, descriptio
       <CardContent>
         <Box display="flex" justifyContent="space-between" alignItems="center">
           <Box>
-            <Typography variant="subtitle1" component="div" color="error" sx={{ fontWeight: 'bold' }}>
+            <Typography variant="subtitle1" component="div" color="error" sx={{ fontWeight: 'bold',fontFamily: 'Roboto, sans-serif' }}>
               {title}
             </Typography>
-            <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.8rem' }}>
+            <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.8rem' ,fontFamily: 'Roboto, sans-serif'}}>
               {categoryDisplay} • {formattedDate}
             </Typography>
             {description && (
-              <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.8rem', mt: 0.5 }}>
+              <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.8rem', mt: 0.5,fontFamily: 'Roboto, sans-serif' }}>
                 {description}
               </Typography>
             )}
           </Box>
           <Box display="flex" alignItems="center">
-            <Typography variant="subtitle1" color="error" sx={{ mr: 1 }}>
+            <Typography variant="subtitle1" color="error" sx={{ mr: 1,fontFamily: 'Roboto, sans-serif' }}>
               ₹{amount.toLocaleString()}
             </Typography>
             <IconButton
@@ -162,7 +162,7 @@ function Expenses() {
             <Typography
               variant="h5"
               color="error"
-              sx={{ fontWeight: 'bold' }}
+              sx={{ fontWeight: 'bold',fontFamily: 'Roboto, sans-serif' }}
             >
               Total: ₹{memoizedTotalExpense.toLocaleString()}
             </Typography>

@@ -42,6 +42,7 @@ const StyledTextField = styled(TextField)(({ theme }) => ({
     '& .MuiInputLabel-root': {
         color: theme.palette.text.secondary,
         transform: 'translate(14px, 11px) scale(1)',
+        fontFamily: 'Roboto, sans-serif',
         '&.Mui-focused, &.MuiFormLabel-filled': {
             transform: 'translate(14px, -9px) scale(0.75)',
         },

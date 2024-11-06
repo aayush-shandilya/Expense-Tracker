@@ -37,8 +37,7 @@ const StyledDrawer = styled(Drawer)(({ theme, drawerwidth }) => ({
     position: 'fixed',
     backgroundColor: theme.palette.background.default, // Added background color
     borderRight: `1px solid ${theme.palette.divider}`, // Added border
-    overflow: 'hidden' 
-   
+    overflow: 'hidden'
   }
 }));
 
@@ -122,10 +121,12 @@ function Navigation({ active, setActive, BaseContainer }) {
               variant={isMobile ? "body1" : "h6"}
               sx={{ 
                 color: 'rgba(34, 34, 96, 1)',
-                fontWeight: 500,
+                fontWeight: 'bold',
                 whiteSpace: 'nowrap',
                 overflow: 'hidden',
-                textOverflow: 'ellipsis'
+                textOverflow: 'ellipsis',
+                fontFamily: 'Roboto, sans-serif'
+                
               }}
             >
               {user?.name || 'User'}
@@ -139,7 +140,8 @@ function Navigation({ active, setActive, BaseContainer }) {
                 gap: 0.5,
                 whiteSpace: 'nowrap',
                 overflow: 'hidden',
-                textOverflow: 'ellipsis'
+                textOverflow: 'ellipsis',
+                fontFamily: 'Roboto, sans-serif'
               }}
             >
               <span>₹</span> {totalBalance()}
@@ -181,7 +183,8 @@ function Navigation({ active, setActive, BaseContainer }) {
                 primaryTypographyProps={{
                   sx: { 
                     fontWeight: active === item.id ? 500 : 400,
-                    fontSize: isMobile ? '0.875rem' : '1rem'
+                    fontSize: isMobile ? '0.875rem' : '1rem',
+                    fontFamily: 'Roboto, sans-serif'
                   }
                 }}
               />
@@ -207,7 +210,8 @@ function Navigation({ active, setActive, BaseContainer }) {
               primaryTypographyProps={{
                 sx: { 
                   color: 'rgba(34, 34, 96, 0.6)',
-                  fontSize: isMobile ? '0.875rem' : '1rem'
+                  fontSize: isMobile ? '0.875rem' : '1rem',
+                  fontFamily: 'Roboto, sans-serif'
                 }
               }}
             />

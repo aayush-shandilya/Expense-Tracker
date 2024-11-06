@@ -51,6 +51,7 @@ const AmountTypography = styled(Typography)(({ variant }) => ({
   fontSize: variant === 'balance' ? '1.25rem' : '1.1rem',  // Further reduced font sizes
   color: variant === 'balance' ? 'var(--color-green)' : 'inherit',
   opacity: variant === 'balance' ? 0.6 : 1,
+  fontFamily: 'Roboto, sans-serif'
 }));
 
 function Dashboard() {
@@ -99,21 +100,21 @@ function Dashboard() {
         <QuadrantPaper>
           <StatsBox>
             <StatItem>
-              <Typography variant="subtitle2" sx={{ fontSize: '0.8rem' }}>
+              <Typography variant="subtitle2" sx={{ fontSize: '0.8rem', fontFamily: 'Roboto, sans-serif' }}>
                 Total Income
               </Typography>
               <AmountTypography>₹{totalIncome()}</AmountTypography>
             </StatItem>
             
             <StatItem>
-              <Typography variant="subtitle2" sx={{ fontSize: '0.8rem' }}>
+              <Typography variant="subtitle2" sx={{ fontSize: '0.8rem', fontFamily: 'Roboto, sans-serif' }}>
                 Total Expense
               </Typography>
               <AmountTypography>₹{totalExpense()}</AmountTypography>
             </StatItem>
             
             <StatItem>
-              <Typography variant="subtitle2" sx={{ fontSize: '0.8rem' }}>
+              <Typography variant="subtitle2" sx={{ fontSize: '0.8rem', fontFamily: 'Roboto, sans-serif' }}>
                 Total Balance
               </Typography>
               <AmountTypography variant="balance">₹{totalBalance()}</AmountTypography>
@@ -149,7 +150,7 @@ function Dashboard() {
         paddingBottom: '5px',
       }}>
         <QuadrantPaper>
-          <Typography variant="subtitle2" sx={{ fontSize: '0.8rem', mb: 1 }}>
+          <Typography variant="subtitle2" sx={{ fontSize: '0.8rem', mb: 1,fontWeight: 'bold',fontFamily: 'Roboto, sans-serif' }}>
             Income & Expense Range
           </Typography>
           
@@ -161,7 +162,7 @@ function Dashboard() {
           }}>
             {/* Salary Range */}
             <Box>
-              <Typography variant="body2" sx={{ fontSize: '0.8rem', mb: 0.5 }}>
+              <Typography variant="body2" sx={{ fontSize: '0.8rem', mb: 0.5,fontWeight:'bold',color: 'green', fontFamily: 'Roboto, sans-serif' }}>
                 Salary Range
               </Typography>
               <StatItem>
@@ -171,18 +172,18 @@ function Dashboard() {
                   alignItems: 'center'
                 }}>
                   <Box>
-                    <Typography variant="body2" sx={{ fontSize: '0.7rem' }}>
+                    <Typography variant="body2" sx={{ fontSize: '0.7rem',color: '#4caf50',fontFamily: 'Roboto, sans-serif' }}>
                       Min
                     </Typography>
-                    <Typography sx={{ fontSize: '0.9rem' }}>
+                    <Typography sx={{ fontSize: '0.9rem',fontFamily: 'Roboto, sans-serif' }}>
                       ₹{Math.min(...incomes.map(item => item.amount))}
                     </Typography>
                   </Box>
                   <Box>
-                    <Typography variant="body2" sx={{ fontSize: '0.7rem' }}>
+                    <Typography variant="body2" sx={{ fontSize: '0.7rem',color:'#357a38',fontFamily: 'Roboto, sans-serif'}}>
                       Max
                     </Typography>
-                    <Typography sx={{ fontSize: '0.9rem' }}>
+                    <Typography sx={{ fontSize: '0.9rem',fontFamily: 'Roboto, sans-serif' }}>
                       ₹{Math.max(...incomes.map(item => item.amount))}
                     </Typography>
                   </Box>
@@ -192,7 +193,7 @@ function Dashboard() {
 
             {/* Expense Range */}
             <Box>
-              <Typography variant="body2" sx={{ fontSize: '0.8rem', mb: 0.5 }}>
+              <Typography variant="body2" sx={{ fontSize: '0.8rem', mb: 0.5 ,fontWeight:'bold',color:'#ff1744',fontFamily: 'Roboto, sans-serif'}}>
                 Expense Range
               </Typography>
               <StatItem>
@@ -202,18 +203,18 @@ function Dashboard() {
                   alignItems: 'center'
                 }}>
                   <Box>
-                    <Typography variant="body2" sx={{ fontSize: '0.7rem' }}>
+                    <Typography variant="body2" sx={{ fontSize: '0.7rem' , color:'#ff4569',fontFamily: 'Roboto, sans-serif'}}>
                       Min
                     </Typography>
-                    <Typography sx={{ fontSize: '0.9rem' }}>
+                    <Typography sx={{ fontSize: '0.9rem',fontFamily: 'Roboto, sans-serif' }}>
                       ₹{Math.min(...expenses.map(item => item.amount))}
                     </Typography>
                   </Box>
                   <Box>
-                    <Typography variant="body2" sx={{ fontSize: '0.7rem' }}>
+                    <Typography variant="body2" sx={{ fontSize: '0.7rem', color:'#b2102f',fontFamily: 'Roboto, sans-serif' }}>
                       Max
                     </Typography>
-                    <Typography sx={{ fontSize: '0.9rem' }}>
+                    <Typography sx={{ fontSize: '0.9rem',fontFamily: 'Roboto, sans-serif' }}>
                       ₹{Math.max(...expenses.map(item => item.amount))}
                     </Typography>
                   </Box>

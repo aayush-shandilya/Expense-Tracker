@@ -41,7 +41,7 @@ const History = () => {
                 <Typography variant="subtitle2" sx={{ 
                     mb: 1,
                     fontSize: '0.9rem',
-                    fontWeight: 500
+                    fontWeight: 600
                 }}>
                     Recent History
                 </Typography>
@@ -98,7 +98,8 @@ const History = () => {
             <Typography variant="subtitle2" sx={{ 
                 mb: 1,
                 fontSize: '0.9rem',
-                fontWeight: 500
+                fontWeight: 'bold',
+                fontFamily: 'Roboto, sans-serif'
             }}>
                 Recent History
             </Typography>
@@ -117,16 +118,19 @@ const History = () => {
                                 <Box>
                                     <Typography sx={{
                                         fontSize: '0.85rem',
-                                        fontWeight: 500,
+                                        fontWeight: 'bold',
                                         color: 'text.primary',
-                                        lineHeight: 1.2
+                                        lineHeight: 1.2,
+                                        fontFamily: 'Roboto, sans-serif',
+                                        
                                     }}>
                                         {title}
                                     </Typography>
                                     <Typography sx={{
                                         fontSize: '0.7rem',
                                         color: 'text.secondary',
-                                        mt: 0.25
+                                        mt: 0.25,
+                                        fontFamily: 'Roboto, sans-serif'
                                     }}>
                                         {new Date(createdAt).toLocaleDateString()}
                                     </Typography>

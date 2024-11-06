@@ -1,12 +1,21 @@
 const User = require('../models/UserModel');
 const jwt = require('jsonwebtoken');
 
-// Generate JWT Token
 const generateToken = (id) => {
     return jwt.sign({ id }, process.env.JWT_SECRET, {
         expiresIn: '30d'
     });
 };
+
+const verifyToken = (token) => {
+    try {
+        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+        return { valid: true, id: decoded.id };
+    } catch (error) {
+        return { valid: false, error: error.message };
+    }
+};
+
 exports.register = async (req, res) => {
     try {
         const { name, email, password } = req.body;
@@ -44,14 +53,9 @@ exports.register = async (req, res) => {
     }
 };
 
-// @desc    Login user
-// @route   POST /api/v1/auth/login
-// @access  Public
 exports.login = async (req, res) => {
     try {
         const { email, password } = req.body;
-
-        // Check for user
         const user = await User.findOne({ email }).select('+password');
         if (!user) {
             return res.status(401).json({
@@ -60,7 +64,6 @@ exports.login = async (req, res) => {
             });
         }
 
-        // Check password
         const isMatch = await user.matchPassword(password);
         if (!isMatch) {
             return res.status(401).json({
@@ -86,12 +89,34 @@ exports.login = async (req, res) => {
     }
 };
 
-// @desc    Get current logged in user
-// @route   GET /api/v1/auth/me
-// @access  Private
 exports.getMe = async (req, res) => {
     try {
-        const user = await User.findById(req.user.id);
+        
+        const token = req.headers.authorization?.split(' ')[1];
+        
+        if (!token) {
+            return res.status(401).json({
+                success: false,
+                error: 'No token provided'
+            });
+        }
+
+        const { valid, id, error } = verifyToken(token);
+        if (!valid) {
+            return res.status(401).json({
+                success: false,
+                error: 'Invalid or expired token'
+            });
+        }
+        const user = await User.findById(id);
+        
+        if (!user) {
+            return res.status(401).json({
+                success: false,
+                error: 'User not found'
+            });
+        }
+
         res.json({
             success: true,
             user: {
@@ -99,6 +124,38 @@ exports.getMe = async (req, res) => {
                 name: user.name,
                 email: user.email
             }
+        });
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            error: 'Server Error'
+        });
+    }
+};
+
+exports.validateToken = async (req, res) => {
+    try {
+        const token = req.headers.authorization?.split(' ')[1];
+        
+        if (!token) {
+            return res.status(401).json({
+                success: false,
+                error: 'No token provided'
+            });
+        }
+
+        const { valid, error } = verifyToken(token);
+        
+        if (!valid) {
+            return res.status(401).json({
+                success: false,
+                error: 'Invalid or expired token'
+            });
+        }
+
+        res.json({
+            success: true,
+            message: 'Token is valid'
         });
     } catch (error) {
         res.status(500).json({

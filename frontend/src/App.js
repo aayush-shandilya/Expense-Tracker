@@ -5,7 +5,7 @@ import {
   styled 
 } from '@mui/material';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import { useAuth } from './context/AuthContext';
+import { useAuth, AuthProvider } from './context/AuthContext'; 
 import Navigation from './components/Navigation/Navigation';
 import TopNavbar from './components/Navigation/TopNavbar';
 import Dashboard from './components/Dashboard/Dashboard';
@@ -58,6 +58,7 @@ const BaseContainer = styled(Box)(({ theme }) => ({
     borderRadius: '3px',
   },
 }));
+
 const ContentArea = styled(Box)(({ theme }) => ({
     height: `calc(100vh - ${NAVBAR_HEIGHT} - 10px)`,  // Adjusted height calculation
     background: 'rgba(252, 246, 249, 0.78)',
@@ -86,8 +87,8 @@ const ProtectedRoute = ({ children }) => {
   if (!user) return <Navigate to="/login" />;
   return children;
 };
+ 
 
-// Custom Grid Container with negative margin to compensate for Grid spacing
 const GridContainer = styled(Grid)({
     margin: 0, // Reset margin
     width: '100%', // Ensure full width
@@ -147,13 +148,10 @@ const MainAppLayout = () => {
       );
     };
 
-  function App() {
-    const { loading } = useAuth();
-  
-    if (loading) return <div>Loading...</div>;
-  
-    return (
-      <Router>
+function App() {
+  return (
+    <Router>
+      <AuthProvider>
         <Routes>
           <Route path="/login" element={<Login />} />
           <Route
@@ -165,8 +163,9 @@ const MainAppLayout = () => {
             }
           />
         </Routes>
-      </Router>
-    );
-  }
-  
-  export default App;
+      </AuthProvider>
+    </Router>
+  );
+}
+
+export default App;

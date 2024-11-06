@@ -74,15 +74,15 @@ const IncomeItem = ({ id, title, amount, date, category, description, deleteItem
       <CardContent>
         <Box display="flex" justifyContent="space-between" alignItems="center">
           <Box>
-            <Typography variant="subtitle1" component="div" color="primary" sx={{ fontWeight: 'bold' }}>
+            <Typography variant="subtitle1" component="div" color="primary" sx={{ fontWeight: 'bold',fontFamily: 'Roboto, sans-serif' }}>
               {title}
             </Typography>
-            <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.8rem' }}>
+            <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.8rem',fontFamily: 'Roboto, sans-serif' }}>
               {category} • {formattedDate}
             </Typography>
           </Box>
           <Box display="flex" alignItems="center">
-            <Typography variant="subtitle1" color="success.main" sx={{ mr: 1 }}>
+            <Typography variant="subtitle1" color="success.main" sx={{ mr: 1,fontFamily: 'Roboto, sans-serif' }}>
               ₹{amount.toLocaleString()}
             </Typography>
             <IconButton
@@ -129,7 +129,7 @@ function Income() {
     return (
       <Container>
         <Alert severity="warning">
-          Please log in to view your income data.
+          Please login to view your income data.
         </Alert>
       </Container>
     );
@@ -141,13 +141,13 @@ function Income() {
         {/* Header Section */}
         <Box sx={{ mb: 2, mt: 1 }}>
           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
-            <Typography variant="h5" component="h1">
+            <Typography variant="h5" component="h1" >
               
             </Typography>
             <Typography
               variant="h5"
               color="primary.main"
-              sx={{ fontWeight: 'bold' }}
+              sx={{ fontWeight: 'bold',fontFamily: 'Roboto, sans-serif' }}
             >
               Total Income: ₹{memoizedTotalIncome.toLocaleString()}
             </Typography>

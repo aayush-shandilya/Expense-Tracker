@@ -30,23 +30,23 @@ import DeleteCategoryModal from '../Modals/DeleteCateoryModal';
 
 // Styled components
 const ContentWrapper = styled(Box)(({ theme }) => ({
-  padding: theme.spacing(3),
+  padding: theme.spacing(2),
 }));
 
 const CategoryCard = styled(Paper)(({ theme }) => ({
-  padding: theme.spacing(3),
+  padding: theme.spacing(2),
   borderRadius: '20px',
   backgroundColor: '#FCF6F9',
   border: '2px solid #FFFFFF',
   boxShadow: '0px 1px 15px rgba(0, 0, 0, 0.06)',
-  marginBottom: theme.spacing(3),
+  marginBottom: theme.spacing(2),
 }));
 
 const CategoryItem = styled(Card)(({ theme }) => ({
   display: 'flex',
   alignItems: 'center',
-  padding: theme.spacing(2),
-  marginBottom: theme.spacing(1),
+  padding: theme.spacing(1),
+  marginBottom: theme.spacing(0.5),
   backgroundColor: 'white',
   borderRadius: '10px',
   boxShadow: '0px 1px 10px rgba(0, 0, 0, 0.03)',
@@ -174,14 +174,14 @@ function ExpensesCategory() {
   }
 
   return (
-    <Container maxWidth="lg">
+    <Box sx={{ mx: 1}}>
       <ContentWrapper>
         {/* Header Section */}
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
           <Typography variant="h4" component="h1">
             
           </Typography>
-          <Box sx={{ display: 'flex', gap: 2 }}>
+          <Box sx={{ display: 'flex', gap: 2,  }}>
             <Button
               variant="contained"
               color="primary"
@@ -193,6 +193,7 @@ function ExpensesCategory() {
                 '&:hover': {
                   bgcolor: '#FF7000',
                 },
+                fontFamily: 'Roboto, sans-serif',
               }}
             >
               Add Category
@@ -204,6 +205,7 @@ function ExpensesCategory() {
                 minWidth: 200,
                 bgcolor: 'background.paper',
                 borderRadius: '10px',
+                fontFamily: 'Roboto, sans-serif',
               }}
             >
               <MenuItem value="all">All Categories</MenuItem>
@@ -230,7 +232,7 @@ function ExpensesCategory() {
           <>
             {/* Category Management Section */}
             <CategoryCard>
-              <Typography variant="h5" gutterBottom>
+              <Typography variant="h5" gutterBottom sx={{fontFamily: 'Roboto, sans-serif'}}>
                 Manage Categories
               </Typography>
               <Grid container spacing={2}>
@@ -239,7 +241,7 @@ function ExpensesCategory() {
                     <CategoryItem>
                       <Box sx={{ display: 'flex', alignItems: 'center', flex: 1 }}>
                         <Box sx={{ mr: 2 }}>{getCategoryIcon(category)}</Box>
-                        <Typography>{getCategoryLabel(category)}</Typography>
+                        <Typography sx={{fontFamily: 'Roboto, sans-serif'}}>{getCategoryLabel(category)}</Typography>
                       </Box>
                       <IconButton
                         color="error"
@@ -261,15 +263,15 @@ function ExpensesCategory() {
 
             {/* Category Details Section */}
             <CategoryCard>
-              <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
                 <IconWrapper>
                   {selectedCategory !== 'all' && getCategoryIcon(selectedCategory)}
                 </IconWrapper>
                 <Box>
-                  <Typography variant="h5" gutterBottom>
+                  <Typography variant="h5" gutterBottom sx={{fontFamily: 'Roboto, sans-serif'}}>
                     {selectedCategory === 'all' ? 'Total Expenses' : getCategoryLabel(selectedCategory)}
                   </Typography>
-                  <Typography variant="h4" color="error.main" gutterBottom>
+                  <Typography variant="h5" color="error.main" gutterBottom sx={{fontFamily: 'Roboto, sans-serif'}}>
                     ₹{selectedCategoryData.total.toFixed(2).toLocaleString()}
                   </Typography>
                   <Typography variant="subtitle1" color="text.secondary">
@@ -278,11 +280,11 @@ function ExpensesCategory() {
                 </Box>
               </Box>
 
-              <Divider sx={{ my: 2 }} />
+              <Divider sx={{ my: 1}} />
 
               {selectedCategoryData.expenses.length > 0 ? (
                 <>
-                  <Typography variant="h6" gutterBottom>
+                  <Typography variant="h6" gutterBottom sx={{fontFamily: 'Roboto, sans-serif'}}>
                     Recent Transactions in {selectedCategory === 'all' ? 'All Categories' : getCategoryLabel(selectedCategory)}
                   </Typography>
                   <List>
@@ -295,16 +297,16 @@ function ExpensesCategory() {
                             primary={expense.title}
                             secondary={
                               <Box>
-                                <Typography variant="body2">{expense.description}</Typography>
-                                <Typography variant="body2" color="text.secondary">
+                                <Typography variant="body2" sx={{fontFamily: 'Roboto, sans-serif'}}>{expense.description}</Typography>
+                                <Typography variant="body2" color="text.secondary" sx={{fontFamily: 'Roboto, sans-serif'}}>
                                   {new Date(expense.date).toLocaleDateString()}
                                 </Typography>
-                                <Typography variant="body2" color="text.secondary">
+                                <Typography variant="body2" color="text.secondary" sx={{fontFamily: 'Roboto, sans-serif'}}>
                                   Categories: {Array.isArray(expense.categories) && expense.categories.length > 0
                                     ? expense.categories.map(cat => getCategoryLabel(cat)).join(', ')
                                     : expense.category
                                       ? getCategoryLabel(expense.category)
-                                      : "Uncategorized"}
+                                      : "All Categories"}
                                 </Typography>
                               </Box>
                             }
@@ -343,7 +345,7 @@ function ExpensesCategory() {
           category={selectedCategoryForDelete}
         />
       </ContentWrapper>
-    </Container>
+    </Box>
   );
 }
 

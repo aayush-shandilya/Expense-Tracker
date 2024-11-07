@@ -1,4 +1,4 @@
-import React, { useEffect, useCallback, useMemo,useState } from 'react';
+import React, { useEffect, useCallback, useMemo, useState } from 'react';
 import {
   Box,
   Typography,
@@ -17,7 +17,6 @@ import {
 import DeleteIcon from '@mui/icons-material/Delete';
 import { useGlobalContext } from '../../context/globalContext';
 import ExpensesForm from './ExpensesForm';
-import Income from '../income/Income';
 
 // Styled components
 const ContentContainer = styled(Box)(({ theme }) => ({
@@ -38,7 +37,9 @@ const StyledPaper = styled(Paper)(({ theme }) => ({
 const ContentWrapper = styled(Box)(({ theme }) => ({
   padding: theme.spacing(2),
   flexGrow: 1,
-  overflowY: 'auto',
+  display: 'flex',
+  flexDirection: 'column',
+  minHeight: 0,
   '&::-webkit-scrollbar': {
     width: '8px',
   },
@@ -78,20 +79,20 @@ const ExpenseItem = ({ id, title, amount, date, category, categories, descriptio
       <CardContent>
         <Box display="flex" justifyContent="space-between" alignItems="center">
           <Box>
-            <Typography variant="subtitle1" component="div" color="error" sx={{ fontWeight: 'bold',fontFamily: 'Roboto, sans-serif' }}>
+            <Typography variant="subtitle1" component="div" color="error" sx={{ fontWeight: 'bold', fontFamily: 'Roboto, sans-serif' }}>
               {title}
             </Typography>
-            <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.8rem' ,fontFamily: 'Roboto, sans-serif'}}>
+            <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.8rem', fontFamily: 'Roboto, sans-serif' }}>
               {categoryDisplay} • {formattedDate}
             </Typography>
             {description && (
-              <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.8rem', mt: 0.5,fontFamily: 'Roboto, sans-serif' }}>
+              <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.8rem', mt: 0.5, fontFamily: 'Roboto, sans-serif' }}>
                 {description}
               </Typography>
             )}
           </Box>
           <Box display="flex" alignItems="center">
-            <Typography variant="subtitle1" color="error" sx={{ mr: 1,fontFamily: 'Roboto, sans-serif' }}>
+            <Typography variant="subtitle1" color="error" sx={{ mr: 1, fontFamily: 'Roboto, sans-serif' }}>
               ₹{amount.toLocaleString()}
             </Typography>
             <IconButton
@@ -108,10 +109,8 @@ const ExpenseItem = ({ id, title, amount, date, category, categories, descriptio
   );
 };
 
-// Main Expenses Component
 function Expenses() {
   const {
-    addExpense,
     expenses,
     getExpenses,
     deleteExpense,
@@ -122,9 +121,8 @@ function Expenses() {
     user
   } = useGlobalContext();
 
-   //pagination state
-   const[page,setPage]=useState(1);
-   const itemPerPage=5;
+  const [page, setPage] = useState(1);
+  const itemPerPage = 4;
 
   useEffect(() => {
     if (user) {
@@ -147,16 +145,14 @@ function Expenses() {
 
   const memoizedTotalExpense = useMemo(() => totalExpense(), [expenses]);
 
-  //paginatation calculation
-  const totalPages = Math.ceil((expenses?.length||0)/itemPerPage);
-  const startIndex = (page-1)*itemPerPage;
-  const endIndex = startIndex+itemPerPage;
-  const currentExpenses = expenses?.slice(startIndex,endIndex)||[];
+  const totalPages = Math.ceil((expenses?.length || 0) / itemPerPage);
+  const startIndex = (page - 1) * itemPerPage;
+  const endIndex = startIndex + itemPerPage;
+  const currentExpenses = expenses?.slice(startIndex, endIndex) || [];
 
-  const handlePageChange=(event,newPage)=>{
+  const handlePageChange = (event, newPage) => {
     setPage(newPage);
-  }
-
+  };
 
   if (!user) {
     return (
@@ -175,12 +171,11 @@ function Expenses() {
         <Box sx={{ mb: 2, mt: 1 }}>
           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
             <Typography variant="h5" component="h1">
-              
             </Typography>
             <Typography
               variant="h5"
               color="error"
-              sx={{ fontWeight: 'bold',fontFamily: 'Roboto, sans-serif' }}
+              sx={{ fontWeight: 'bold', fontFamily: 'Roboto, sans-serif' }}
             >
               Total: ₹{memoizedTotalExpense.toLocaleString()}
             </Typography>
@@ -208,7 +203,7 @@ function Expenses() {
           <Grid item xs={12} md={6} sx={{ height: '100%' }}>
             <StyledPaper>
               <ContentWrapper>
-                {/*Transactions info Header */}
+                {/* Transactions info Header */}
                 <Box 
                   sx={{ 
                     display: 'flex', 
@@ -219,38 +214,54 @@ function Expenses() {
                     borderBottom: '1px solid rgba(0, 0, 0, 0.1)'
                   }}
                 >
-                  <Typography variant='subtitle1' color="text.secondary">
-                    Total Transactions:{expenses?.length||0}
+                  <Typography variant="subtitle1" color="text.secondary">
+                    Total Transactions: {expenses?.length || 0}
                   </Typography>
-                  <Typography>
-                    Showing {startIndex+1}-{Math.min(endIndex,expenses?.length||0)} of {expenses?.length||0}
+                  <Typography variant="subtitle1" color="text.secondary">
+                    Showing {startIndex + 1}-{Math.min(endIndex, expenses?.length || 0)} of {expenses?.length || 0}
                   </Typography>
                 </Box>
 
+                {/* Scrollable Content Area */}
+                <Box sx={{ 
+                  overflowY: 'auto', 
+                  flexGrow: 1,
+                  mb: 2
+                }}>
+                  {loading ? (
+                    <Box display="flex" justifyContent="center" p={2}>
+                      <CircularProgress size={24} />
+                    </Box>
+                  ) : currentExpenses && currentExpenses.length > 0 ? (
+                    currentExpenses.map((expense) => (
+                      <ExpenseItem
+                        key={expense._id}
+                        id={expense._id}
+                        title={expense.title}
+                        description={expense.description}
+                        amount={expense.amount}
+                        date={expense.date}
+                        type={expense.type}
+                        category={expense.category}
+                        categories={expense.categories}
+                        deleteItem={handleDelete}
+                      />
+                    ))
+                  ) : (
+                    <Alert severity="info">
+                      No expense records found.
+                    </Alert>
+                  )}
+                </Box>
 
-                {loading ? (
-                  <Box display="flex" justifyContent="center" p={2}>
-                    <CircularProgress size={24} />
-                  </Box>
-                ) : currentExpenses && currentExpenses.length > 0 ? (
-                <>
-                {/* Expense Items */}
-                  {currentExpenses.map((expense) => (
-                    <ExpenseItem
-                      key={expense._id}
-                      id={expense._id}
-                      title={expense.title}
-                      description={expense.description}
-                      amount={expense.amount}
-                      date={expense.date}
-                      type={expense.type}
-                      category={expense.category}
-                      categories={expense.categories}
-                      deleteItem={handleDelete}
-                    />
-                  ))}
-
-                  <Stack spacing={2} sx={{ mt: 2 }}>
+                {/* Fixed Pagination at Bottom */}
+                {currentExpenses && currentExpenses.length > 0 && (
+                  <Box sx={{ 
+                    mt: 'auto',
+                    pt: 2,
+                    borderTop: '1px solid rgba(0, 0, 0, 0.1)'
+                  }}>
+                    <Stack spacing={2}>
                       <Box display="flex" justifyContent="center">
                         <Pagination
                           count={totalPages}
@@ -262,11 +273,7 @@ function Expenses() {
                         />
                       </Box>
                     </Stack>
-                </>
-                ) : (
-                  <Alert severity="info">
-                    No expense records found.
-                  </Alert>
+                  </Box>
                 )}
               </ContentWrapper>
             </StyledPaper>

@@ -1,4 +1,4 @@
-import React, { useEffect, useCallback, useMemo,useState } from 'react';
+import React, { useEffect, useCallback, useMemo, useState } from 'react';
 import {
   Box,
   Typography,
@@ -20,7 +20,7 @@ import Form from '../Form/Form';
 
 // Styled components
 const ContentContainer = styled(Box)(({ theme }) => ({
-  height: 'calc(100vh - 100px)', // Adjust total height
+  height: 'calc(100vh - 100px)',
   display: 'flex',
   flexDirection: 'column',
 }));
@@ -37,7 +37,9 @@ const StyledPaper = styled(Paper)(({ theme }) => ({
 const ContentWrapper = styled(Box)(({ theme }) => ({
   padding: theme.spacing(2),
   flexGrow: 1,
-  overflowY: 'auto',
+  display: 'flex',
+  flexDirection: 'column',
+  minHeight: 0,
   '&::-webkit-scrollbar': {
     width: '8px',
   },
@@ -76,15 +78,28 @@ const IncomeItem = ({ id, title, amount, date, category, description, deleteItem
       <CardContent>
         <Box display="flex" justifyContent="space-between" alignItems="center">
           <Box>
-            <Typography variant="subtitle1" component="div" color="primary" sx={{ fontWeight: 'bold',fontFamily: 'Roboto, sans-serif' }}>
+            <Typography 
+              variant="subtitle1" 
+              component="div" 
+              color="primary" 
+              sx={{ fontWeight: 'bold', fontFamily: 'Roboto, sans-serif' }}
+            >
               {title}
             </Typography>
-            <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.8rem',fontFamily: 'Roboto, sans-serif' }}>
+            <Typography 
+              variant="body2" 
+              color="text.secondary" 
+              sx={{ fontSize: '0.8rem', fontFamily: 'Roboto, sans-serif' }}
+            >
               {category} • {formattedDate}
             </Typography>
           </Box>
           <Box display="flex" alignItems="center">
-            <Typography variant="subtitle1" color="success.main" sx={{ mr: 1,fontFamily: 'Roboto, sans-serif' }}>
+            <Typography 
+              variant="subtitle1" 
+              color="success.main" 
+              sx={{ mr: 1, fontFamily: 'Roboto, sans-serif' }}
+            >
               ₹{amount.toLocaleString()}
             </Typography>
             <IconButton
@@ -114,10 +129,8 @@ function Income() {
     user
   } = useGlobalContext();
 
-
-  //pagination state
-  const[page,setPage]=useState(1);
-  const itemPerPage=6;
+  const [page, setPage] = useState(1);
+  const itemPerPage = 5;
 
   useEffect(() => {
     if (user) {
@@ -132,17 +145,15 @@ function Income() {
 
   const memoizedTotalIncome = useMemo(() => totalIncome(), [incomes]);
 
-  //pagination calculation
-  const totalPages=Math.ceil((incomes?.length||0)/itemPerPage);
-  const startIndex = (page-1)*itemPerPage;
+  // Pagination calculations
+  const totalPages = Math.ceil((incomes?.length || 0) / itemPerPage);
+  const startIndex = (page - 1) * itemPerPage;
   const endIndex = startIndex + itemPerPage;
-  const currentIncomes  = incomes?.slice(startIndex,endIndex)||[];
-  
+  const currentIncomes = incomes?.slice(startIndex, endIndex) || [];
+
   const handlePageChange = (event, newPage) => {
     setPage(newPage);
   };
-
-
 
   if (!user) {
     return (
@@ -159,14 +170,17 @@ function Income() {
       <ContentContainer>
         {/* Header Section */}
         <Box sx={{ mb: 2, mt: 1 }}>
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
-            <Typography variant="h5" component="h1" >
-              
-            </Typography>
+          <Box sx={{ 
+            display: 'flex', 
+            justifyContent: 'space-between', 
+            alignItems: 'center', 
+            mb: 1 
+          }}>
+            <Typography variant="h5" component="h1" />
             <Typography
               variant="h5"
               color="primary.main"
-              sx={{ fontWeight: 'bold',fontFamily: 'Roboto, sans-serif' }}
+              sx={{ fontWeight: 'bold', fontFamily: 'Roboto, sans-serif' }}
             >
               Total Income: ₹{memoizedTotalIncome.toLocaleString()}
             </Typography>
@@ -194,7 +208,7 @@ function Income() {
           <Grid item xs={12} md={6} sx={{ height: '100%' }}>
             <StyledPaper>
               <ContentWrapper>
-                {/*Transactions info Header */}
+                {/* Transactions info Header */}
                 <Box 
                   sx={{ 
                     display: 'flex', 
@@ -205,7 +219,7 @@ function Income() {
                     borderBottom: '1px solid rgba(0, 0, 0, 0.1)'
                   }}
                 >
-                <Typography variant="subtitle1" color="text.secondary">
+                  <Typography variant="subtitle1" color="text.secondary">
                     Total Transactions: {incomes?.length || 0}
                   </Typography>
                   <Typography variant="subtitle1" color="text.secondary">
@@ -213,15 +227,18 @@ function Income() {
                   </Typography>
                 </Box>
 
-
-                {loading ? (
-                  <Box display="flex" justifyContent="center" p={2}>
-                    <CircularProgress size={24} />
-                  </Box>
-                ) : currentIncomes && currentIncomes.length > 0 ? (
-                  <>
-                    {/* Income Items */}
-                    {currentIncomes.map((income) => (
+                {/* Scrollable Content Area */}
+                <Box sx={{ 
+                  overflowY: 'auto', 
+                  flexGrow: 1,
+                  mb: 2
+                }}>
+                  {loading ? (
+                    <Box display="flex" justifyContent="center" p={2}>
+                      <CircularProgress size={24} />
+                    </Box>
+                  ) : currentIncomes && currentIncomes.length > 0 ? (
+                    currentIncomes.map((income) => (
                       <IncomeItem
                         key={income._id}
                         id={income._id}
@@ -233,9 +250,22 @@ function Income() {
                         category={income.category}
                         deleteItem={handleDelete}
                       />
-                    ))}
-            
-                      <Stack spacing={2} sx={{ mt: 2 }}>
+                    ))
+                  ) : (
+                    <Alert severity="info">
+                      No income records found.
+                    </Alert>
+                  )}
+                </Box>
+
+                {/* Fixed Pagination at Bottom */}
+                {currentIncomes && currentIncomes.length > 0 && (
+                  <Box sx={{ 
+                    mt: 'auto',
+                    pt: 2,
+                    borderTop: '1px solid rgba(0, 0, 0, 0.1)'
+                  }}>
+                    <Stack spacing={2}>
                       <Box display="flex" justifyContent="center">
                         <Pagination
                           count={totalPages}
@@ -247,11 +277,7 @@ function Income() {
                         />
                       </Box>
                     </Stack>
-                  </>
-                ) : (
-                  <Alert severity="info">
-                    No income records found.
-                  </Alert>
+                  </Box>
                 )}
               </ContentWrapper>
             </StyledPaper>

@@ -18,7 +18,9 @@ import {
   ListItem,
   ListItemText,
   ListItemSecondaryAction,
-  styled
+  styled,
+  Pagination,
+  Stack
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import DeleteIcon from '@mui/icons-material/Delete';
@@ -28,7 +30,7 @@ import { updateCategories } from '../../config/categories';
 import AddCategoryModal from '../Modals/AddCategoryModels';
 import DeleteCategoryModal from '../Modals/DeleteCateoryModal';
 
-// Styled components
+// Styled components remain the same...
 const ContentWrapper = styled(Box)(({ theme }) => ({
   padding: theme.spacing(2),
 }));
@@ -88,6 +90,13 @@ function ExpensesCategory() {
   const [categories, setCategories] = useState([]);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [selectedCategoryForDelete, setSelectedCategoryForDelete] = useState(null);
+  
+  const [page, setPage] = useState(1);
+  const itemsPerPage = 1; // Changed to 5 items per page for better UX
+
+  {/* In the component, add these new state variables */}
+  const [categoryPage, setCategoryPage] = useState(1);
+  const categoriesPerPage = 6; // Show 6 items per page
 
   const allCategories = getAllCategories();
 
@@ -104,6 +113,11 @@ function ExpensesCategory() {
     const updatedCategories = updateCategories(customCategories);
     setCategories(getAllCategories());
   }, [customCategories]);
+
+  // Reset page to 1 when category changes
+  useEffect(() => {
+    setPage(1);
+  }, [selectedCategory]);
 
   const categoryData = useMemo(() => {
     const initialData = allCategories.reduce((acc, category) => {
@@ -163,6 +177,41 @@ function ExpensesCategory() {
     return categoryData[selectedCategory] || { total: 0, count: 0, expenses: [] };
   }, [selectedCategory, expenses, categoryData]);
 
+  // Sort and paginate the transactions
+  const paginatedTransactions = useMemo(() => {
+    const sortedTransactions = [...selectedCategoryData.expenses]
+      .sort((a, b) => new Date(b.date) - new Date(a.date));
+    
+    const startIndex = (page - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
+    
+    return sortedTransactions.slice(startIndex, endIndex);
+  }, [selectedCategoryData.expenses, page, itemsPerPage]);
+
+  const totalPages = Math.ceil(selectedCategoryData.expenses.length / itemsPerPage);
+
+  const handlePageChange = (event, newPage) => {
+    setPage(newPage);
+  };
+
+  {/* Add this new function */}
+const paginatedCategories = useMemo(() => {
+  const filteredCategories = categories.filter(cat => cat !== 'all');
+  const startIndex = (categoryPage - 1) * categoriesPerPage;
+  const endIndex = startIndex + categoriesPerPage;
+  return filteredCategories.slice(startIndex, endIndex);
+}, [categories, categoryPage]);
+
+const totalCategoryPages = Math.ceil(
+  (categories.filter(cat => cat !== 'all').length) / categoriesPerPage
+);
+
+const handleCategoryPageChange = (event, newPage) => {
+  setCategoryPage(newPage);
+};
+
+
+
   if (!user) {
     return (
       <Container>
@@ -174,14 +223,14 @@ function ExpensesCategory() {
   }
 
   return (
-    <Box sx={{ mx: 1}}>
+    <Box sx={{ mx: 1 }}>
       <ContentWrapper>
-        {/* Header Section */}
+        {/* Header Section remains the same... */}
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
           <Typography variant="h4" component="h1">
             
           </Typography>
-          <Box sx={{ display: 'flex', gap: 2,  }}>
+          <Box sx={{ display: 'flex', gap: 2 }}>
             <Button
               variant="contained"
               color="primary"
@@ -230,9 +279,9 @@ function ExpensesCategory() {
           </Box>
         ) : (
           <>
-            {/* Category Management Section */}
-            <CategoryCard>
-              <Typography variant="h5" gutterBottom sx={{fontFamily: 'Roboto, sans-serif'}}>
+            {/* Category Management Section remains the same... */}
+            {/* <CategoryCard>
+              <Typography variant="h5" gutterBottom sx={{ fontFamily: 'Roboto, sans-serif' }}>
                 Manage Categories
               </Typography>
               <Grid container spacing={2}>
@@ -241,7 +290,7 @@ function ExpensesCategory() {
                     <CategoryItem>
                       <Box sx={{ display: 'flex', alignItems: 'center', flex: 1 }}>
                         <Box sx={{ mr: 2 }}>{getCategoryIcon(category)}</Box>
-                        <Typography sx={{fontFamily: 'Roboto, sans-serif'}}>{getCategoryLabel(category)}</Typography>
+                        <Typography sx={{ fontFamily: 'Roboto, sans-serif' }}>{getCategoryLabel(category)}</Typography>
                       </Box>
                       <IconButton
                         color="error"
@@ -259,6 +308,65 @@ function ExpensesCategory() {
                   </Grid>
                 ))}
               </Grid>
+            </CategoryCard> */}
+
+            <CategoryCard>
+              <Box sx={{ 
+                display: 'flex', 
+                justifyContent: 'space-between', 
+                alignItems: 'center',
+                mb: 2
+              }}>
+                <Typography variant="h5" sx={{ fontFamily: 'Roboto, sans-serif' }}>
+                  Manage Categories
+                </Typography>
+                <Typography variant="subtitle1" color="text.secondary">
+                  Showing {((categoryPage - 1) * categoriesPerPage) + 1}-
+                  {Math.min(categoryPage * categoriesPerPage, categories.filter(cat => cat !== 'all').length)} of {categories.filter(cat => cat !== 'all').length}
+                </Typography>
+              </Box>
+
+              <Grid container spacing={2}>
+                {paginatedCategories.map(category => (
+                  <Grid item xs={12} sm={6} md={4} key={category}>
+                    <CategoryItem>
+                      <Box sx={{ display: 'flex', alignItems: 'center', flex: 1 }}>
+                        <Box sx={{ mr: 2 }}>{getCategoryIcon(category)}</Box>
+                        <Typography sx={{ fontFamily: 'Roboto, sans-serif' }}>
+                          {getCategoryLabel(category)}
+                        </Typography>
+                      </Box>
+                      <IconButton
+                        color="error"
+                        onClick={() => {
+                          setSelectedCategoryForDelete({
+                            key: category,
+                            label: getCategoryLabel(category)
+                          });
+                          setIsDeleteModalOpen(true);
+                        }}
+                      >
+                        <DeleteIcon />
+                      </IconButton>
+                    </CategoryItem>
+                  </Grid>
+                ))}
+              </Grid>
+
+              {totalCategoryPages > 1 && (
+                <Stack spacing={2} sx={{ mt: 2 }}>
+                  <Box display="flex" justifyContent="center">
+                    <Pagination
+                      count={totalCategoryPages}
+                      page={categoryPage}
+                      onChange={handleCategoryPageChange}
+                      color="primary"
+                      shape="rounded"
+                      size="medium"
+                    />
+                  </Box>
+                </Stack>
+              )}
             </CategoryCard>
 
             {/* Category Details Section */}
@@ -267,58 +375,96 @@ function ExpensesCategory() {
                 <IconWrapper>
                   {selectedCategory !== 'all' && getCategoryIcon(selectedCategory)}
                 </IconWrapper>
-                <Box>
-                  <Typography variant="h5" gutterBottom sx={{fontFamily: 'Roboto, sans-serif'}}>
+                <Box sx={{ width: '100%' }}> 
+                  <Typography variant="h5" gutterBottom sx={{ fontFamily: 'Roboto, sans-serif' }}>
                     {selectedCategory === 'all' ? 'Total Expenses' : getCategoryLabel(selectedCategory)}
                   </Typography>
-                  <Typography variant="h5" color="error.main" gutterBottom sx={{fontFamily: 'Roboto, sans-serif'}}>
-                    ₹{selectedCategoryData.total.toFixed(2).toLocaleString()}
-                  </Typography>
-                  <Typography variant="subtitle1" color="text.secondary">
-                    {selectedCategoryData.count} transactions
-                  </Typography>
+
+                  <Box
+                     sx={{ 
+                      display: 'flex', 
+                      justifyContent: 'space-between', 
+                      alignItems: 'center',
+                      width: '100%' // Ensure the box takes full width
+                    }}
+                  >
+                    <Typography variant="h5" color="error.main" gutterBottom sx={{ fontFamily: 'Roboto, sans-serif' }}>
+                      ₹{selectedCategoryData.total.toFixed(2).toLocaleString()}
+                    </Typography>
+                    
+                    <Typography variant="subtitle1" color="text.secondary">
+                      Total Transactions: {selectedCategoryData.count}
+                    </Typography>
+                  </Box>
                 </Box>
               </Box>
 
-              <Divider sx={{ my: 1}} />
+              <Divider sx={{ my: 1 }} />
 
               {selectedCategoryData.expenses.length > 0 ? (
                 <>
-                  <Typography variant="h6" gutterBottom sx={{fontFamily: 'Roboto, sans-serif'}}>
-                    Recent Transactions in {selectedCategory === 'all' ? 'All Categories' : getCategoryLabel(selectedCategory)}
-                  </Typography>
+                  <Box 
+                    sx={{ 
+                      display: 'flex', 
+                      justifyContent: 'space-between', 
+                      alignItems: 'center',
+                      borderBottom: '1px solid rgba(0, 0, 0, 0.1)'
+                    }}
+                  >
+                    <Typography variant="h6" gutterBottom sx={{ fontFamily: 'Roboto, sans-serif' }}>
+                      Recent Transactions in {selectedCategory === 'all' ? 'All Categories' : getCategoryLabel(selectedCategory)}
+                    </Typography>
+
+                    <Typography variant="subtitle1" color="text.secondary">
+                      Showing {((page - 1) * itemsPerPage) + 1}
+                      {Math.min(page * itemsPerPage, selectedCategoryData.expenses.length)} of {selectedCategoryData.expenses.length}
+                    </Typography>
+                  </Box>
+
                   <List>
-                    {selectedCategoryData.expenses
-                      .sort((a, b) => new Date(b.date) - new Date(a.date))
-                      .slice(0, 5)
-                      .map((expense) => (
-                        <TransactionItem key={expense._id}>
-                          <ListItemText
-                            primary={expense.title}
-                            secondary={
-                              <Box>
-                                <Typography variant="body2" sx={{fontFamily: 'Roboto, sans-serif'}}>{expense.description}</Typography>
-                                <Typography variant="body2" color="text.secondary" sx={{fontFamily: 'Roboto, sans-serif'}}>
-                                  {new Date(expense.date).toLocaleDateString()}
-                                </Typography>
-                                <Typography variant="body2" color="text.secondary" sx={{fontFamily: 'Roboto, sans-serif'}}>
-                                  Categories: {Array.isArray(expense.categories) && expense.categories.length > 0
-                                    ? expense.categories.map(cat => getCategoryLabel(cat)).join(', ')
-                                    : expense.category
-                                      ? getCategoryLabel(expense.category)
-                                      : "All Categories"}
-                                </Typography>
-                              </Box>
-                            }
-                          />
-                          <ListItemSecondaryAction>
-                            <Typography variant="subtitle1" color="error">
-                              ₹{parseFloat(expense.amount).toLocaleString()}
-                            </Typography>
-                          </ListItemSecondaryAction>
-                        </TransactionItem>
-                      ))}
+                    {paginatedTransactions.map((expense) => (
+                      <TransactionItem key={expense._id}>
+                        <ListItemText
+                          primary={expense.title}
+                          secondary={
+                            <Box>
+                              <Typography variant="body2" sx={{ fontFamily: 'Roboto, sans-serif' }}>{expense.description}</Typography>
+                              <Typography variant="body2" color="text.secondary" sx={{ fontFamily: 'Roboto, sans-serif' }}>
+                                {new Date(expense.date).toLocaleDateString()}
+                              </Typography>
+                              <Typography variant="body2" color="text.secondary" sx={{ fontFamily: 'Roboto, sans-serif' }}>
+                                Categories: {Array.isArray(expense.categories) && expense.categories.length > 0
+                                  ? expense.categories.map(cat => getCategoryLabel(cat)).join(', ')
+                                  : expense.category
+                                    ? getCategoryLabel(expense.category)
+                                    : "All Categories"}
+                              </Typography>
+                            </Box>
+                          }
+                        />
+                        <ListItemSecondaryAction>
+                          <Typography variant="subtitle1" color="error">
+                            ₹{parseFloat(expense.amount).toLocaleString()}
+                          </Typography>
+                        </ListItemSecondaryAction>
+                      </TransactionItem>
+                    ))}
                   </List>
+
+                  {totalPages > 1 && (
+                    <Stack spacing={2}>
+                      <Box display="flex" justifyContent="center">
+                        <Pagination
+                          count={totalPages}
+                          page={page}
+                          onChange={handlePageChange}
+                          color="primary"
+                          shape="rounded"
+                          size="medium"
+                        />
+                      </Box>
+                    </Stack>
+                  )}
                 </>
               ) : (
                 <Alert severity="info">
@@ -331,7 +477,7 @@ function ExpensesCategory() {
           </>
         )}
 
-        {/* Modals */}
+        {/* Modals remain the same... */}
         <AddCategoryModal
           isOpen={isAddModalOpen}
           onClose={() => setIsAddModalOpen(false)}

@@ -1,4 +1,4 @@
-import React, { useEffect, useCallback, useMemo } from 'react';
+import React, { useEffect, useCallback, useMemo,useState } from 'react';
 import {
   Box,
   Typography,
@@ -10,11 +10,14 @@ import {
   IconButton,
   Card,
   CardContent,
-  styled
+  styled,
+  Pagination,
+  Stack
 } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
 import { useGlobalContext } from '../../context/globalContext';
 import ExpensesForm from './ExpensesForm';
+import Income from '../income/Income';
 
 // Styled components
 const ContentContainer = styled(Box)(({ theme }) => ({
@@ -119,6 +122,10 @@ function Expenses() {
     user
   } = useGlobalContext();
 
+   //pagination state
+   const[page,setPage]=useState(1);
+   const itemPerPage=5;
+
   useEffect(() => {
     if (user) {
       getExpenses();
@@ -139,6 +146,17 @@ function Expenses() {
   }, [deleteExpense, setError, getExpenses]);
 
   const memoizedTotalExpense = useMemo(() => totalExpense(), [expenses]);
+
+  //paginatation calculation
+  const totalPages = Math.ceil((expenses?.length||0)/itemPerPage);
+  const startIndex = (page-1)*itemPerPage;
+  const endIndex = startIndex+itemPerPage;
+  const currentExpenses = expenses?.slice(startIndex,endIndex)||[];
+
+  const handlePageChange=(event,newPage)=>{
+    setPage(newPage);
+  }
+
 
   if (!user) {
     return (
@@ -190,12 +208,34 @@ function Expenses() {
           <Grid item xs={12} md={6} sx={{ height: '100%' }}>
             <StyledPaper>
               <ContentWrapper>
+                {/*Transactions info Header */}
+                <Box 
+                  sx={{ 
+                    display: 'flex', 
+                    justifyContent: 'space-between', 
+                    alignItems: 'center',
+                    mb: 2,
+                    pb: 2,
+                    borderBottom: '1px solid rgba(0, 0, 0, 0.1)'
+                  }}
+                >
+                  <Typography variant='subtitle1' color="text.secondary">
+                    Total Transactions:{expenses?.length||0}
+                  </Typography>
+                  <Typography>
+                    Showing {startIndex+1}-{Math.min(endIndex,expenses?.length||0)} of {expenses?.length||0}
+                  </Typography>
+                </Box>
+
+
                 {loading ? (
                   <Box display="flex" justifyContent="center" p={2}>
                     <CircularProgress size={24} />
                   </Box>
-                ) : expenses && expenses.length > 0 ? (
-                  expenses.map((expense) => (
+                ) : currentExpenses && currentExpenses.length > 0 ? (
+                <>
+                {/* Expense Items */}
+                  {currentExpenses.map((expense) => (
                     <ExpenseItem
                       key={expense._id}
                       id={expense._id}
@@ -203,11 +243,26 @@ function Expenses() {
                       description={expense.description}
                       amount={expense.amount}
                       date={expense.date}
+                      type={expense.type}
                       category={expense.category}
                       categories={expense.categories}
                       deleteItem={handleDelete}
                     />
-                  ))
+                  ))}
+
+                  <Stack spacing={2} sx={{ mt: 2 }}>
+                      <Box display="flex" justifyContent="center">
+                        <Pagination
+                          count={totalPages}
+                          page={page}
+                          onChange={handlePageChange}
+                          color="primary"
+                          shape="rounded"
+                          size="medium"
+                        />
+                      </Box>
+                    </Stack>
+                </>
                 ) : (
                   <Alert severity="info">
                     No expense records found.

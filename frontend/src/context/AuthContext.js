@@ -39,7 +39,6 @@ export const AuthProvider = ({ children }) => {
             if (tokenCheckInterval) {
                 clearInterval(tokenCheckInterval);
             }
-            // Check token every minute
             const intervalId = setInterval(validateToken, 60000);
             setTokenCheckInterval(intervalId);
         };

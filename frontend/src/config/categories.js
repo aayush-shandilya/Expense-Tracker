@@ -9,7 +9,6 @@ import {
     circle
 } from '../utils/icon';
 
-// Default categories
 export const DEFAULT_CATEGORIES = {
     education: {
         label: 'Education',

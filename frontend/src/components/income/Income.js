@@ -1,4 +1,4 @@
-import React, { useEffect, useCallback, useMemo } from 'react';
+import React, { useEffect, useCallback, useMemo,useState } from 'react';
 import {
   Box,
   Typography,
@@ -10,7 +10,9 @@ import {
   IconButton,
   Card,
   CardContent,
-  styled
+  styled,
+  Pagination,
+  Stack
 } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
 import { useGlobalContext } from '../../context/globalContext';
@@ -112,6 +114,11 @@ function Income() {
     user
   } = useGlobalContext();
 
+
+  //pagination state
+  const[page,setPage]=useState(1);
+  const itemPerPage=6;
+
   useEffect(() => {
     if (user) {
       getIncomes();
@@ -124,6 +131,18 @@ function Income() {
   }, [deleteIncome, getIncomes]);
 
   const memoizedTotalIncome = useMemo(() => totalIncome(), [incomes]);
+
+  //pagination calculation
+  const totalPages=Math.ceil((incomes?.length||0)/itemPerPage);
+  const startIndex = (page-1)*itemPerPage;
+  const endIndex = startIndex + itemPerPage;
+  const currentIncomes  = incomes?.slice(startIndex,endIndex)||[];
+  
+  const handlePageChange = (event, newPage) => {
+    setPage(newPage);
+  };
+
+
 
   if (!user) {
     return (
@@ -175,24 +194,60 @@ function Income() {
           <Grid item xs={12} md={6} sx={{ height: '100%' }}>
             <StyledPaper>
               <ContentWrapper>
+                {/*Transactions info Header */}
+                <Box 
+                  sx={{ 
+                    display: 'flex', 
+                    justifyContent: 'space-between', 
+                    alignItems: 'center',
+                    mb: 2,
+                    pb: 2,
+                    borderBottom: '1px solid rgba(0, 0, 0, 0.1)'
+                  }}
+                >
+                <Typography variant="subtitle1" color="text.secondary">
+                    Total Transactions: {incomes?.length || 0}
+                  </Typography>
+                  <Typography variant="subtitle1" color="text.secondary">
+                    Showing {startIndex + 1}-{Math.min(endIndex, incomes?.length || 0)} of {incomes?.length || 0}
+                  </Typography>
+                </Box>
+
+
                 {loading ? (
                   <Box display="flex" justifyContent="center" p={2}>
                     <CircularProgress size={24} />
                   </Box>
-                ) : incomes && incomes.length > 0 ? (
-                  incomes.map((income) => (
-                    <IncomeItem
-                      key={income._id}
-                      id={income._id}
-                      title={income.title}
-                      description={income.description}
-                      amount={income.amount}
-                      date={income.date}
-                      type={income.type}
-                      category={income.category}
-                      deleteItem={handleDelete}
-                    />
-                  ))
+                ) : currentIncomes && currentIncomes.length > 0 ? (
+                  <>
+                    {/* Income Items */}
+                    {currentIncomes.map((income) => (
+                      <IncomeItem
+                        key={income._id}
+                        id={income._id}
+                        title={income.title}
+                        description={income.description}
+                        amount={income.amount}
+                        date={income.date}
+                        type={income.type}
+                        category={income.category}
+                        deleteItem={handleDelete}
+                      />
+                    ))}
+            
+                      <Stack spacing={2} sx={{ mt: 2 }}>
+                      <Box display="flex" justifyContent="center">
+                        <Pagination
+                          count={totalPages}
+                          page={page}
+                          onChange={handlePageChange}
+                          color="primary"
+                          shape="rounded"
+                          size="medium"
+                        />
+                      </Box>
+                    </Stack>
+                  </>
                 ) : (
                   <Alert severity="info">
                     No income records found.

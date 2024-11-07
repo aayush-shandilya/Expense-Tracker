@@ -94,8 +94,6 @@ export const GlobalProvider = ({ children }) => {
             setLoading(false);
         }
     };
-
-    // globalContext.js
     const deleteIncome = async (id) => {
         if (!user) {
             setError('You must be logged in to delete income');
@@ -116,14 +114,12 @@ export const GlobalProvider = ({ children }) => {
 
             const data = await response.json();
 
-            // Log the response for debugging
             console.log('Delete response:', data);
 
             if (!response.ok) {
                 throw new Error(data.error || 'Could not delete income');
             }
 
-            // Update the local state only if the delete was successful
             setIncomes(prevIncomes => prevIncomes.filter(income => income._id !== id));
             return { success: true };
 
@@ -135,55 +131,6 @@ export const GlobalProvider = ({ children }) => {
             setLoading(false);
         }
     };
-
-
-
-// // globalContext.js
-// const addExpense = async (expense) => {
-//     if (!user) {
-//         setError('You must be logged in to add expense');
-//         return { success: false, error: 'Not logged in' };
-//     }
-
-//     setError(null);
-//     setLoading(true);
-
-//     try {
-//         // Debug logging
-//         console.log('Current user:', user);
-//         console.log('Sending expense data:', { ...expense, user: user._id });
-
-//         const response = await fetch('http://localhost:5001/api/v1/add-expense', {
-//             method: 'POST',
-//             headers: {
-//                 'Content-Type': 'application/json',
-//                 'Authorization': `Bearer ${localStorage.getItem('token')}`
-//             },
-//             body: JSON.stringify({
-//                 ...expense,
-//                 user: user._id  // Include user ID in the expense data
-//             })
-//         });
-
-//         const data = await response.json();
-//         console.log('Server response:', data);
-
-//         if (!response.ok) {
-//             throw new Error(data.error || 'Could not add expense');
-//         }
-
-//         // Update local state after successful addition
-//         await getExpenses();
-//         return { success: true };
-
-//     } catch (err) {
-//         console.error('Error adding expense:', err);
-//         setError(err.message);
-//         return { success: false, error: err.message };
-//     } finally {
-//         setLoading(false);
-//     }
-// };
 
 // In your globalContext.js file, update the addExpense function:
 const addExpense = async (expense) => {
@@ -234,9 +181,6 @@ const addExpense = async (expense) => {
 };
 
 
-
-
-// Make sure getExpenses is correctly implemented
 const getExpenses = async () => {
     if (!user) {
         setExpenses([]);

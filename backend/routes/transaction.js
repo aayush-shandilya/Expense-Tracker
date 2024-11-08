@@ -1,11 +1,29 @@
 const express = require('express');
 const router = express.Router();
 const { protect } = require('../middleware/auth');
+const multer = require('multer');
+//const { GridFsStorage } = require('multer-gridfs-storage');
+const upload = multer({ storage: multer.memoryStorage() });
+
+
+// // Configure GridFS storage
+// const storage = new GridFsStorage({
+//     url: process.env.MONGO_URL,
+//     options: { useNewUrlParser: true, useUnifiedTopology: true },
+//     file: (req, file) => {
+//         return {
+//             bucketName: 'uploads',
+//             filename: `${Date.now()}-${file.originalname}`
+//         };
+//     }
+// });
+
 
 const { 
     addIncome,
     getIncomes,
-    deleteIncome 
+    deleteIncome,
+    getIncomeFile
 } = require('../controllers/income');
 
 const {
@@ -24,9 +42,17 @@ const {
 
 router.use(protect);
 
-router.post('/add-income', addIncome);
+// //router.post('/add-income', addIncome);
+// router.get('/get-incomes', getIncomes);
+// router.delete('/delete-income/:id', deleteIncome);
+// router.post('/add-income', upload.single('file'), addIncome);
+// router.get('/get-income-file/:id', protect, getIncomeFile);
+
+// Income routes with file upload
+router.post('/add-income', upload.single('file'), addIncome);
 router.get('/get-incomes', getIncomes);
 router.delete('/delete-income/:id', deleteIncome);
+router.get('/get-income-file/:id', getIncomeFile);
 
 router.post('/add-expense', addExpense);
 router.get('/get-expenses', getExpense);

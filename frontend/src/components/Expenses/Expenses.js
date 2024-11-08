@@ -12,11 +12,20 @@ import {
   CardContent,
   styled,
   Pagination,
-  Stack
+  Stack,
+  Button,
+  Dialog,
+  DialogTitle,
+  DialogContent
 } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
 import { useGlobalContext } from '../../context/globalContext';
 import ExpensesForm from './ExpensesForm';
+
+import DownloadIcon from '@mui/icons-material/Download';
+import AttachFileIcon from '@mui/icons-material/AttachFile';
+import ImageIcon from '@mui/icons-material/Image';
+import CloseIcon from '@mui/icons-material/Close';
 
 // Styled components
 const ContentContainer = styled(Box)(({ theme }) => ({
@@ -69,20 +78,514 @@ const ExpenseItemCard = styled(Card)(({ theme }) => ({
   },
 }));
 
-// Expense Item Component
-const ExpenseItem = ({ id, title, amount, date, category, categories, description, deleteItem }) => {
+// // Expense Item Component
+// const ExpenseItem = ({ id, title, amount, date, category, categories, description, deleteItem }) => {
+//   const formattedDate = new Date(date).toLocaleDateString();
+//   const categoryDisplay = categories ? categories.join(', ') : category;
+  
+//   return (
+//     <ExpenseItemCard>
+//       <CardContent>
+//         <Box display="flex" justifyContent="space-between" alignItems="center">
+//           <Box>
+//             <Typography variant="subtitle1" component="div" color="error" sx={{ fontWeight: 'bold', fontFamily: 'Roboto, sans-serif' }}>
+//               {title}
+//             </Typography>
+//             <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.8rem', fontFamily: 'Roboto, sans-serif' }}>
+//               {categoryDisplay} • {formattedDate}
+//             </Typography>
+//             {description && (
+//               <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.8rem', mt: 0.5, fontFamily: 'Roboto, sans-serif' }}>
+//                 {description}
+//               </Typography>
+//             )}
+//           </Box>
+//           <Box display="flex" alignItems="center">
+//             <Typography variant="subtitle1" color="error" sx={{ mr: 1, fontFamily: 'Roboto, sans-serif' }}>
+//               ₹{amount.toLocaleString()}
+//             </Typography>
+//             <IconButton
+//               onClick={() => deleteItem(id)}
+//               color="error"
+//               size="small"
+//             >
+//               <DeleteIcon fontSize="small" />
+//             </IconButton>
+//           </Box>
+//         </Box>
+//       </CardContent>
+//     </ExpenseItemCard>
+//   );
+// };
+
+// // Updated ExpenseItem Component
+// const ExpenseItem = ({ 
+//   id, 
+//   title, 
+//   amount, 
+//   date, 
+//   category, 
+//   categories, 
+//   description, 
+//   deleteItem,
+//   fileUrl,
+//   fileName,
+//   fileType 
+// }) => {
+//   const [previewOpen, setPreviewOpen] = useState(false);
+//   const formattedDate = new Date(date).toLocaleDateString();
+//   const categoryDisplay = categories ? categories.join(', ') : category;
+//   const isImage = fileType?.startsWith('image/');
+
+//   const handlePreviewOpen = () => {
+//     setPreviewOpen(true);
+//   };
+
+//   const handlePreviewClose = () => {
+//     setPreviewOpen(false);
+//   };
+
+//   const handleDownload = async () => {
+//     if (!fileUrl) return;
+    
+//     try {
+//       const response = await fetch(fileUrl);
+//       const blob = await response.blob();
+//       const url = window.URL.createObjectURL(blob);
+//       const link = document.createElement('a');
+//       link.href = url;
+//       link.download = fileName || 'download';
+//       document.body.appendChild(link);
+//       link.click();
+//       document.body.removeChild(link);
+//       window.URL.revokeObjectURL(url);
+//     } catch (error) {
+//       console.error('Error downloading file:', error);
+//     }
+//   };
+  
+//   return (
+//     <>
+//       <ExpenseItemCard>
+//       <CardContent sx={{ padding: 1.5, '&:last-child': { paddingBottom: 1.5 } }}>
+//           <Box display="flex" justifyContent="space-between" alignItems="center">
+//             <Box>
+//               <Typography variant="subtitle1" component="div" color="error" sx={{ fontWeight: 'bold', fontFamily: 'Roboto, sans-serif' }}>
+//                 {title}
+//               </Typography>
+//               <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.8rem', fontFamily: 'Roboto, sans-serif' }}>
+//                 {categoryDisplay} • {formattedDate}
+//               </Typography>
+//               {description && (
+//                 <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.8rem', mt: 0.5, fontFamily: 'Roboto, sans-serif' }}>
+//                   {description}
+//                 </Typography>
+//               )}
+//             </Box>
+//             <Box display="flex" alignItems="center" gap={1}>
+//               <Typography variant="subtitle1" color="error" sx={{ fontFamily: 'Roboto, sans-serif' }}>
+//                 ₹{amount.toLocaleString()}
+//               </Typography>
+//               {fileUrl && (
+//                 <IconButton
+//                   onClick={handleDownload}
+//                   color="primary"
+//                   size="small"
+//                   title="Download File"
+//                 >
+//                   <DownloadIcon fontSize="small" />
+//                 </IconButton>
+//               )}
+//               <IconButton
+//                 onClick={() => deleteItem(id)}
+//                 color="error"
+//                 size="small"
+//               >
+//                 <DeleteIcon fontSize="small" />
+//               </IconButton>
+//             </Box>
+//           </Box>
+//         </CardContent>
+//       </ExpenseItemCard>
+
+//       <Dialog
+//         open={previewOpen}
+//         onClose={handlePreviewClose}
+//         maxWidth="md"
+//         fullWidth
+//       >
+//         <DialogTitle sx={{ 
+//           display: 'flex', 
+//           justifyContent: 'space-between', 
+//           alignItems: 'center' 
+//         }}>
+//           <Typography variant="h6">{fileName || 'Attachment'}</Typography>
+//           <IconButton onClick={handlePreviewClose} size="small">
+//             <CloseIcon />
+//           </IconButton>
+//         </DialogTitle>
+//         <DialogContent sx={{ 
+//           display: 'flex',
+//           flexDirection: 'column',
+//           alignItems: 'center',
+//           gap: 2
+//         }}>
+//           {isImage ? (
+//             <Box
+//               component="img"
+//               src={fileUrl}
+//               alt={fileName}
+//               sx={{ 
+//                 maxWidth: '100%',
+//                 maxHeight: '70vh',
+//                 objectFit: 'contain'
+//               }}
+//             />
+//           ) : (
+//             <Box sx={{ textAlign: 'center' }}>
+//               <AttachFileIcon sx={{ fontSize: 60, color: 'primary.main' }} />
+//               <Typography sx={{ mt: 2 }}>
+//                 {fileName}
+//               </Typography>
+//             </Box>
+//           )}
+//           <Button
+//             variant="contained"
+//             startIcon={<DownloadIcon />}
+//             onClick={handleDownload}
+//             sx={{ mt: 2, bgcolor: 'primary.main' }}
+//           >
+//             Download
+//           </Button>
+//         </DialogContent>
+//       </Dialog>
+//     </>
+//   );
+// };
+
+
+// const ExpenseItem = ({ 
+//   id, 
+//   title, 
+//   amount, 
+//   date, 
+//   category, 
+//   categories, 
+//   description, 
+//   deleteItem,
+//   fileUrl,
+//   fileName,
+//   fileType 
+// }) => {
+//   const [previewOpen, setPreviewOpen] = useState(false);
+//   const formattedDate = new Date(date).toLocaleDateString();
+//   const categoryDisplay = categories ? categories.join(', ') : category;
+//   const isImage = fileType?.startsWith('image/');
+
+//   const handlePreviewOpen = () => {
+//     setPreviewOpen(true);
+//   };
+
+//   const handlePreviewClose = () => {
+//     setPreviewOpen(false);
+//   };
+
+//   const handleDownload = async () => {
+//     if (!fileUrl) return;
+    
+//     try {
+//       const response = await fetch(fileUrl);
+//       const blob = await response.blob();
+//       const url = window.URL.createObjectURL(blob);
+//       const link = document.createElement('a');
+//       link.href = url;
+//       link.download = fileName || 'download';
+//       document.body.appendChild(link);
+//       link.click();
+//       document.body.removeChild(link);
+//       window.URL.revokeObjectURL(url);
+//     } catch (error) {
+//       console.error('Error downloading file:', error);
+//     }
+//   };
+  
+//   return (
+//     <>
+//       <ExpenseItemCard>
+//         <CardContent>
+//           <Box display="flex" justifyContent="space-between" alignItems="center">
+//             <Box>
+//               <Typography variant="subtitle1" component="div" color="error" sx={{ fontWeight: 'bold', fontFamily: 'Roboto, sans-serif' }}>
+//                 <Box display="flex" alignItems="center" gap={1}>
+//                   {title}
+//                   {fileUrl && (
+//                     <IconButton
+//                       onClick={handleDownload}
+//                       color="primary"
+//                       size="small"
+//                       sx={{ padding: '4px' }}
+//                       title={fileName || 'Download attachment'}
+//                     >
+//                       <AttachFileIcon fontSize="small" />
+//                     </IconButton>
+//                   )}
+//                 </Box>
+//               </Typography>
+//               <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.8rem', fontFamily: 'Roboto, sans-serif' }}>
+//                 {categoryDisplay} • {formattedDate}
+//               </Typography>
+//               {description && (
+//                 <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.8rem', mt: 0.5, fontFamily: 'Roboto, sans-serif' }}>
+//                   {description}
+//                 </Typography>
+//               )}
+//             </Box>
+//             <Box display="flex" alignItems="center" gap={1}>
+//               <Typography variant="subtitle1" color="error" sx={{ fontFamily: 'Roboto, sans-serif' }}>
+//                 ₹{amount.toLocaleString()}
+//               </Typography>
+//               <IconButton
+//                 onClick={() => deleteItem(id)}
+//                 color="error"
+//                 size="small"
+//               >
+//                 <DeleteIcon fontSize="small" />
+//               </IconButton>
+//             </Box>
+//           </Box>
+//         </CardContent>
+//       </ExpenseItemCard>
+
+//       <Dialog
+//         open={previewOpen}
+//         onClose={handlePreviewClose}
+//         maxWidth="md"
+//         fullWidth
+//       >
+//         <DialogTitle sx={{ 
+//           display: 'flex', 
+//           justifyContent: 'space-between', 
+//           alignItems: 'center' 
+//         }}>
+//           <Typography variant="h6">{fileName || 'Attachment'}</Typography>
+//           <IconButton onClick={handlePreviewClose} size="small">
+//             <CloseIcon />
+//           </IconButton>
+//         </DialogTitle>
+//         <DialogContent sx={{ 
+//           display: 'flex',
+//           flexDirection: 'column',
+//           alignItems: 'center',
+//           gap: 2
+//         }}>
+//           {isImage ? (
+//             <Box
+//               component="img"
+//               src={fileUrl}
+//               alt={fileName}
+//               sx={{ 
+//                 maxWidth: '100%',
+//                 maxHeight: '70vh',
+//                 objectFit: 'contain'
+//               }}
+//             />
+//           ) : (
+//             <Box sx={{ textAlign: 'center' }}>
+//               <AttachFileIcon sx={{ fontSize: 60, color: 'primary.main' }} />
+//               <Typography sx={{ mt: 2 }}>
+//                 {fileName}
+//               </Typography>
+//             </Box>
+//           )}
+//           <Button
+//             variant="contained"
+//             startIcon={<DownloadIcon />}
+//             onClick={handleDownload}
+//             sx={{ mt: 2 }}
+//           >
+//             Download
+//           </Button>
+//         </DialogContent>
+//       </Dialog>
+//     </>
+//   );
+// };
+
+
+// const ExpenseItem = ({ 
+//   id, 
+//   title, 
+//   amount, 
+//   date, 
+//   category, 
+//   categories, 
+//   description, 
+//   deleteItem,
+//   fileUrl,
+//   fileName,
+//   fileType 
+// }) => {
+//   const formattedDate = new Date(date).toLocaleDateString();
+//   const categoryDisplay = categories ? categories.join(', ') : category;
+//   const isImage = fileType?.startsWith('image/');
+
+//   const handleDownload = async () => {
+//     if (!fileUrl) return;
+    
+//     try {
+//       const response = await fetch(fileUrl);
+//       const blob = await response.blob();
+//       const url = window.URL.createObjectURL(blob);
+//       const link = document.createElement('a');
+//       link.href = url;
+//       link.download = fileName || 'download';
+//       document.body.appendChild(link);
+//       link.click();
+//       document.body.removeChild(link);
+//       window.URL.revokeObjectURL(url);
+//     } catch (error) {
+//       console.error('Error downloading file:', error);
+//     }
+//   };
+  
+//   return (
+//     <ExpenseItemCard>
+//       <CardContent>
+//         <Box display="flex" justifyContent="space-between" alignItems="flex-start">
+//           <Box flex={1}>
+//             <Box display="flex" alignItems="center" gap={1}>
+//               <Typography 
+//                 variant="subtitle1" 
+//                 component="div" 
+//                 color="error" 
+//                 sx={{ 
+//                   fontWeight: 'bold', 
+//                   fontFamily: 'Roboto, sans-serif',
+//                   display: 'flex',
+//                   alignItems: 'center',
+//                   gap: 1
+//                 }}
+//               >
+//                 {title}
+//                 {fileUrl && (
+//                   <IconButton
+//                     onClick={handleDownload}
+//                     color="primary"
+//                     size="small"
+//                     sx={{ 
+//                       padding: '2px',
+//                       minWidth: '24px',
+//                       height: '24px'
+//                     }}
+//                     title={`Download ${fileName || 'attachment'}`}
+//                   >
+//                     <DownloadIcon fontSize="small" />
+//                   </IconButton>
+//                 )}
+//               </Typography>
+//             </Box>
+//             <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.8rem', fontFamily: 'Roboto, sans-serif', mt: 0.5 }}>
+//               {categoryDisplay} • {formattedDate}
+//             </Typography>
+//             {description && (
+//               <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.8rem', mt: 0.5, fontFamily: 'Roboto, sans-serif' }}>
+//                 {description}
+//               </Typography>
+//             )}
+//           </Box>
+//           <Box display="flex" alignItems="center" gap={1} ml={2}>
+//             <Typography variant="subtitle1" color="error" sx={{ fontFamily: 'Roboto, sans-serif' }}>
+//               ₹{amount.toLocaleString()}
+//             </Typography>
+//             <IconButton
+//               onClick={() => deleteItem(id)}
+//               color="error"
+//               size="small"
+//             >
+//               <DeleteIcon fontSize="small" />
+//             </IconButton>
+//           </Box>
+//         </Box>
+//       </CardContent>
+//     </ExpenseItemCard>
+//   );
+// };
+
+const ExpenseItem = ({ 
+  id, 
+  title, 
+  amount, 
+  date, 
+  category, 
+  categories, 
+  description, 
+  deleteItem,
+  fileUrl,
+  fileName,
+  fileType 
+}) => {
   const formattedDate = new Date(date).toLocaleDateString();
   const categoryDisplay = categories ? categories.join(', ') : category;
+
+  const handleDownload = async () => {
+    if (!fileUrl) return;
+    
+    try {
+      const response = await fetch(fileUrl);
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = fileName || 'download';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Error downloading file:', error);
+    }
+  };
   
   return (
     <ExpenseItemCard>
       <CardContent>
-        <Box display="flex" justifyContent="space-between" alignItems="center">
-          <Box>
-            <Typography variant="subtitle1" component="div" color="error" sx={{ fontWeight: 'bold', fontFamily: 'Roboto, sans-serif' }}>
-              {title}
-            </Typography>
-            <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.8rem', fontFamily: 'Roboto, sans-serif' }}>
+        <Box display="flex" justifyContent="space-between" alignItems="flex-start">
+          <Box flex={1}>
+            <Box display="flex" alignItems="center" gap={1}>
+              <Typography 
+                variant="subtitle1" 
+                component="div" 
+                color="error" 
+                sx={{ 
+                  fontWeight: 'bold', 
+                  fontFamily: 'Roboto, sans-serif',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 1
+                }}
+              >
+                {title}
+                <IconButton
+                  onClick={handleDownload}
+                  color={fileUrl ? "primary" : "default"}
+                  size="small"
+                  disabled={!fileUrl}
+                  sx={{ 
+                    padding: '2px',
+                    minWidth: '24px',
+                    height: '24px',
+                    opacity: fileUrl ? 1 : 0.5,
+                    '&.Mui-disabled': {
+                      color: 'rgba(0, 0, 0, 0.26)'
+                    }
+                  }}
+                  title={fileUrl ? `Download ${fileName || 'attachment'}` : 'No attachment'}
+                >
+                  <DownloadIcon fontSize="small" />
+                </IconButton>
+              </Typography>
+            </Box>
+            <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.8rem', fontFamily: 'Roboto, sans-serif', mt: 0.5 }}>
               {categoryDisplay} • {formattedDate}
             </Typography>
             {description && (
@@ -91,8 +594,8 @@ const ExpenseItem = ({ id, title, amount, date, category, categories, descriptio
               </Typography>
             )}
           </Box>
-          <Box display="flex" alignItems="center">
-            <Typography variant="subtitle1" color="error" sx={{ mr: 1, fontFamily: 'Roboto, sans-serif' }}>
+          <Box display="flex" alignItems="center" gap={1} ml={2}>
+            <Typography variant="subtitle1" color="error" sx={{ fontFamily: 'Roboto, sans-serif' }}>
               ₹{amount.toLocaleString()}
             </Typography>
             <IconButton
@@ -228,12 +731,12 @@ function Expenses() {
                   flexGrow: 1,
                   mb: 2
                 }}>
-                  {loading ? (
+                  {/* {loading ? (
                     <Box display="flex" justifyContent="center" p={2}>
                       <CircularProgress size={24} />
                     </Box>
                   ) : currentExpenses && currentExpenses.length > 0 ? (
-                    currentExpenses.map((expense) => (
+                    {currentExpenses.map((expense) => (
                       <ExpenseItem
                         key={expense._id}
                         id={expense._id}
@@ -245,13 +748,45 @@ function Expenses() {
                         category={expense.category}
                         categories={expense.categories}
                         deleteItem={handleDelete}
+                        fileUrl={expense.fileId ? `/api/expenses/get-file/${expense._id}` : null}
+                        fileName={expense.fileName}
+                        fileType={expense.fileType}
                       />
-                    ))
+                    ))}
                   ) : (
                     <Alert severity="info">
                       No expense records found.
                     </Alert>
-                  )}
+                  )} */}
+
+
+              {loading ? (
+                  <Box display="flex" justifyContent="center" p={2}>
+                    <CircularProgress size={24} />
+                  </Box>
+                ) : currentExpenses && currentExpenses.length > 0 ? (
+                  currentExpenses.map((expense) => (
+                    <ExpenseItem
+                      key={expense._id}
+                      id={expense._id}
+                      title={expense.title}
+                      description={expense.description}
+                      amount={expense.amount}
+                      date={expense.date}
+                      type={expense.type}
+                      category={expense.category}
+                      categories={expense.categories}
+                      deleteItem={handleDelete}
+                      fileUrl={expense.fileId ? `/api/expenses/get-file/${expense._id}` : null}
+                      fileName={expense.fileName}
+                      fileType={expense.fileType}
+                    />
+                  ))
+                ) : (
+                  <Alert severity="info">
+                    No expense records found.
+                  </Alert>
+                )}
                 </Box>
 
                 {/* Fixed Pagination at Bottom */}

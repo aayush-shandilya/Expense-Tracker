@@ -1,25 +1,11 @@
+
 const express = require('express');
 const router = express.Router();
 const { protect } = require('../middleware/auth');
 const multer = require('multer');
-//const { GridFsStorage } = require('multer-gridfs-storage');
 const upload = multer({ storage: multer.memoryStorage() });
 
-
-// // Configure GridFS storage
-// const storage = new GridFsStorage({
-//     url: process.env.MONGO_URL,
-//     options: { useNewUrlParser: true, useUnifiedTopology: true },
-//     file: (req, file) => {
-//         return {
-//             bucketName: 'uploads',
-//             filename: `${Date.now()}-${file.originalname}`
-//         };
-//     }
-// });
-
-
-const { 
+const {
     addIncome,
     getIncomes,
     deleteIncome,
@@ -28,8 +14,9 @@ const {
 
 const {
     addExpense,
-    getExpense,
-    deleteExpense
+    getExpenses,
+    deleteExpense,
+    getExpenseFile  // Add the new controller
 } = require('../controllers/expense');
 
 const {
@@ -38,15 +25,9 @@ const {
     deleteCategory,
     checkCategory,
     updateCategory
-} = require('../controllers/category'); 
+} = require('../controllers/category');
 
 router.use(protect);
-
-// //router.post('/add-income', addIncome);
-// router.get('/get-incomes', getIncomes);
-// router.delete('/delete-income/:id', deleteIncome);
-// router.post('/add-income', upload.single('file'), addIncome);
-// router.get('/get-income-file/:id', protect, getIncomeFile);
 
 // Income routes with file upload
 router.post('/add-income', upload.single('file'), addIncome);
@@ -54,10 +35,13 @@ router.get('/get-incomes', getIncomes);
 router.delete('/delete-income/:id', deleteIncome);
 router.get('/get-income-file/:id', getIncomeFile);
 
-router.post('/add-expense', addExpense);
-router.get('/get-expenses', getExpense);
+// Expense routes with file upload
+router.post('/add-expense', upload.single('file'), addExpense);
+router.get('/get-expenses', getExpenses);
 router.delete('/delete-expense/:id', deleteExpense);
+router.get('/get-expense-file/:id', getExpenseFile);  // Add new file route
 
+// Category routes
 router.post('/add-category', addCategory);
 router.get('/get-categories', getCategories);
 router.delete('/delete-category/:id', deleteCategory);

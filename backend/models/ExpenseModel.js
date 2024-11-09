@@ -22,7 +22,7 @@ const ExpenseSchema = new mongoose.Schema({
         required: true,
         trim: true
     },
-    categories: [{  //it will accept an array of category
+    categories: [{
         type: String,
         required: true,
         trim: true
@@ -32,6 +32,20 @@ const ExpenseSchema = new mongoose.Schema({
         required: true,
         maxLength: 20,
         trim: true
+    },
+    // Added file-related fields
+    fileId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'uploads.files',
+        default: null
+    },
+    fileName: {
+        type: String,
+        default: null
+    },
+    fileType: {
+        type: String,
+        default: null
     },
     user: {
         type: mongoose.Schema.Types.ObjectId,

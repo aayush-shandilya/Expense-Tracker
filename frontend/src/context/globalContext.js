@@ -1,4 +1,3 @@
-//globalContext.js    
 import React, { createContext, useContext, useState } from "react";
 import { useAuth } from '../context/AuthContext';
 import { DEFAULT_CATEGORIES } from '../config/categories';
@@ -15,40 +14,46 @@ export const GlobalProvider = ({ children }) => {
     const [loading, setLoading] = useState(false);
     const { user } = useAuth();
 
-    // Helper to ensure consistent user ID
     const getUserId = () => user?.id || user?._id;
 
-    // Helper for Authorization header
     const getAuthHeader = () => ({
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${localStorage.getItem('token')}`  // Fixed template literal
+        'Authorization': `Bearer ${localStorage.getItem('token')}` 
     });
-
-    const addIncome = async (income) => {
+    const addIncome = async (formData) => {
         if (!user) {
             setError('You must be logged in to add income');
             return;
         }
-
+    
         setError(null);
         setLoading(true);
+    
         try {
-            const response = await fetch('http://localhost:5001/api/v1/add-income', {
+            console.log('FormData contents:');
+            for (let pair of formData.entries()) {
+                console.log(pair[0] + ': ' + pair[1]);
+            }
+    
+            const response = await fetch(`${BASE_URL}/transactions/add-income`, {
                 method: 'POST',
-                headers: getAuthHeader(),
-                body: JSON.stringify({
-                    ...income,
-                    user: getUserId()
-                })
+                headers: {
+                    'Authorization': `Bearer ${localStorage.getItem('token')}`
+                },
+                body: formData
             });
+    
+            console.log('Response status:', response.status);
+            console.log('Response headers:', [...response.headers.entries()]);
+    
             const data = await response.json();
-            
+    
             if (!response.ok) {
                 throw new Error(data.message || 'Could not add income');
             }
-
-            // Update local state only after successful API call
-            getIncomes();  // Refresh the full list
+    
+            console.log('Response data:', data);
+    
             return { success: true };
         } catch (err) {
             console.error('Error adding income:', err);
@@ -58,9 +63,6 @@ export const GlobalProvider = ({ children }) => {
             setLoading(false);
         }
     };
-
-
-
     const getIncomes = async () => {
         if (!user) {
             setIncomes([]);
@@ -70,7 +72,7 @@ export const GlobalProvider = ({ children }) => {
         setError(null);
         setLoading(true);
         try {
-            const response = await fetch(`http://localhost:5001/api/v1/get-incomes`, {
+            const response = await fetch(`http://localhost:5001/api/v1/transactions/get-incomes`, {
                 headers: getAuthHeader()
             });
             
@@ -80,7 +82,6 @@ export const GlobalProvider = ({ children }) => {
                 throw new Error(data.message || 'Could not fetch incomes');
             }
 
-            // Filter incomes for the current user
             const userIncomes = Array.isArray(data.data) 
                 ? data.data.filter(income => income.user === getUserId())
                 : [];
@@ -104,7 +105,7 @@ export const GlobalProvider = ({ children }) => {
         setLoading(true);
         
         try {
-            const response = await fetch(`http://localhost:5001/api/v1/delete-income/${id}`, {
+            const response = await fetch(`http://localhost:5001/api/v1/transactions/delete-income/${id}`, {
                 method: 'DELETE',
                 headers: {
                     'Content-Type': 'application/json',
@@ -132,8 +133,61 @@ export const GlobalProvider = ({ children }) => {
         }
     };
 
-// In your globalContext.js file, update the addExpense function:
-const addExpense = async (expense) => {
+const downloadIncomeFile = async (incomeId, fileName, fileType) => {
+    if (!user) {
+        setError('You must be logged in to download files');
+        return { success: false, error: 'Not logged in' };
+    }
+
+    setError(null);
+    try {
+        const isTextFile = fileType?.includes('text') || 
+                          fileType?.includes('application/json') ||
+                          fileType?.includes('application/xml');
+
+        const url = `${BASE_URL}/transactions/get-income-file/${incomeId}${isTextFile ? '?preview=true' : ''}`;
+        
+        const response = await fetch(url, {
+            headers: getAuthHeader()
+        });
+
+        if (!response.ok) {
+            throw new Error('Failed to download file');
+        }
+
+        if (isTextFile) {
+            const text = await response.text();
+            const blob = new Blob([text], { type: fileType || 'text/plain;charset=utf-8' });
+            const downloadUrl = window.URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = downloadUrl;
+            link.download = fileName || 'download.txt';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            window.URL.revokeObjectURL(downloadUrl);
+        } else {
+            const blob = await response.blob();
+            const downloadUrl = window.URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = downloadUrl;
+            link.download = fileName || 'download';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            window.URL.revokeObjectURL(downloadUrl);
+        }
+        
+        return { success: true };
+    } catch (err) {
+        console.error('Error downloading file:', err);
+        setError(err.message || 'Error downloading file');
+        return { success: false, error: err.message };
+    }
+};
+
+
+const addExpense = async (formData) => {
     if (!user) {
         setError('You must be logged in to add expense');
         return { success: false, error: 'Not logged in' };
@@ -143,31 +197,20 @@ const addExpense = async (expense) => {
     setLoading(true);
 
     try {
-        // Debug logging
-        console.log('Current user:', user);
-        console.log('Sending expense data:', { ...expense, user: user._id });
-
-        const response = await fetch('http://localhost:5001/api/v1/add-expense', {
+        const response = await fetch(`${BASE_URL}/transactions/add-expense`, {
             method: 'POST',
             headers: {
-                'Content-Type': 'application/json',
                 'Authorization': `Bearer ${localStorage.getItem('token')}`
             },
-            body: JSON.stringify({
-                ...expense,
-                categories: Array.isArray(expense.categories) ? expense.categories : [expense.categories], // Convert to array if not already
-                user: user._id
-            })
+            body: formData
         });
 
         const data = await response.json();
-        console.log('Server response:', data);
 
         if (!response.ok) {
             throw new Error(data.error || 'Could not add expense');
         }
 
-        // Update local state after successful addition
         await getExpenses();
         return { success: true };
 
@@ -177,6 +220,48 @@ const addExpense = async (expense) => {
         return { success: false, error: err.message };
     } finally {
         setLoading(false);
+    }
+};
+
+const downloadExpenseFile = async (expenseId, fileName, fileType) => {
+    if (!user) {
+        setError('You must be logged in to download files');
+        return { success: false, error: 'Not logged in' };
+    }
+
+    setError(null);
+    try {
+        const isTextFile = fileType?.includes('text') || 
+                          fileType?.includes('application/json') ||
+                          fileType?.includes('application/xml');
+
+        const url = `${BASE_URL}/transactions/get-expense-file/${expenseId}${isTextFile ? '?preview=true' : ''}`;
+        
+        const response = await fetch(url, {
+            headers: {
+                'Authorization': `Bearer ${localStorage.getItem('token')}`
+            }
+        });
+
+        if (!response.ok) {
+            throw new Error('Failed to download file');
+        }
+
+        const blob = await response.blob();
+        const downloadUrl = window.URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = downloadUrl;
+        link.download = fileName || 'download';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        window.URL.revokeObjectURL(downloadUrl);
+        
+        return { success: true };
+    } catch (err) {
+        console.error('Error downloading file:', err);
+        setError(err.message || 'Error downloading file');
+        return { success: false, error: err.message };
     }
 };
 
@@ -190,7 +275,7 @@ const getExpenses = async () => {
     setError(null);
     setLoading(true);
     try {
-        const response = await fetch(`http://localhost:5001/api/v1/get-expenses`, {
+        const response = await fetch(`http://localhost:5001/api/v1/transactions/get-expenses`, {
             headers: {
                 'Content-Type': 'application/json',
                 'Authorization': `Bearer ${localStorage.getItem('token')}`
@@ -223,7 +308,7 @@ const deleteExpense = async (id) => {
     setLoading(true);
     
     try {
-        const response = await fetch(`http://localhost:5001/api/v1/delete-expense/${id}`, {
+        const response = await fetch(`http://localhost:5001/api/v1/transactions/delete-expense/${id}`, {
             method: 'DELETE',
             headers: getAuthHeader()
         });
@@ -235,7 +320,6 @@ const deleteExpense = async (id) => {
             throw new Error(data.error || 'Could not delete expense');
         }
 
-        // Update the local state only if delete was successful
         setExpenses(prevExpenses => prevExpenses.filter(expense => expense._id !== id));
         return { success: true };
 
@@ -282,13 +366,13 @@ const deleteExpense = async (id) => {
         setLoading(true);
 
         try {
-            const response = await fetch('http://localhost:5001/api/v1/add-category', {
+            const response = await fetch('http://localhost:5001/api/v1/transactions/add-category', {
                 method: 'POST',
                 headers: getAuthHeader(),
                 body: JSON.stringify({
                     ...categoryData,
                     user: getUserId(),
-                    icon: 'circle' // Default icon
+                    icon: 'circle' 
                 })
             });
 
@@ -298,7 +382,6 @@ const deleteExpense = async (id) => {
                 throw new Error(data.error || 'Could not add category');
             }
 
-            // Update local state
             setCustomCategories(prev => [...prev, data.category]);
             return { success: true, category: data.category };
 
@@ -311,7 +394,6 @@ const deleteExpense = async (id) => {
         }
     };
 
-    // New function to get custom categories
     const getCategories = async () => {
         if (!user) {
             setCustomCategories([]);
@@ -322,7 +404,7 @@ const deleteExpense = async (id) => {
         setLoading(true);
 
         try {
-            const response = await fetch('http://localhost:5001/api/v1/get-categories', {
+            const response = await fetch('http://localhost:5001/api/v1/transactions/get-categories', {
                 headers: getAuthHeader()
             });
 
@@ -332,7 +414,6 @@ const deleteExpense = async (id) => {
                 throw new Error(data.error || 'Could not fetch categories');
             }
 
-            // Filter categories for current user
             const userCategories = Array.isArray(data.categories) 
                 ? data.categories.filter(cat => cat.user === getUserId())
                 : [];
@@ -348,9 +429,6 @@ const deleteExpense = async (id) => {
         }
     };
 
-    // New function to delete custom category
-    // In your globalContext.js, add or update the deleteCategory function:
-// In your GlobalProvider component:
 const deleteCategory = async (categoryKey) => {
     if (!user) {
         setError('You must be logged in to delete categories');
@@ -361,7 +439,6 @@ const deleteCategory = async (categoryKey) => {
     setLoading(true);
 
     try {
-        // Check if it's a default category
         if (DEFAULT_CATEGORIES.hasOwnProperty(categoryKey)) {
             setError('Cannot delete default categories');
             return { success: false, error: 'Cannot delete default categories' };
@@ -378,10 +455,8 @@ const deleteCategory = async (categoryKey) => {
             throw new Error(data.error || 'Could not delete category');
         }
 
-        // Update categories in state
         setCustomCategories(prev => prev.filter(cat => cat.key !== categoryKey));
         
-        // Optionally refresh all categories
         await getCategories();
 
         return { success: true };
@@ -395,7 +470,6 @@ const deleteCategory = async (categoryKey) => {
     }
 };
 
-    // Update category
     const updateCategory = async (categoryId, updateData) => {
         if (!user) {
             setError('You must be logged in to update categories');
@@ -406,7 +480,7 @@ const deleteCategory = async (categoryKey) => {
         setLoading(true);
 
         try {
-            const response = await fetch(`http://localhost:5001/api/v1/update-category/${categoryId}`, {
+            const response = await fetch(`http://localhost:5001/api/v1/transactions/update-category/${categoryId}`, {
                 method: 'PUT',
                 headers: getAuthHeader(),
                 body: JSON.stringify(updateData)
@@ -418,7 +492,6 @@ const deleteCategory = async (categoryKey) => {
                 throw new Error(data.error || 'Could not update category');
             }
 
-            // Update local state
             setCustomCategories(prev => 
                 prev.map(cat => cat._id === categoryId ? { ...cat, ...updateData } : cat)
             );
@@ -438,10 +511,12 @@ const deleteCategory = async (categoryKey) => {
             addIncome,
             getIncomes,
             incomes,
+            downloadIncomeFile,
             deleteIncome,
             addExpense,
             getExpenses,
             expenses,
+            downloadExpenseFile,
             deleteExpense,
             totalIncome,
             totalExpense,
@@ -451,7 +526,6 @@ const deleteCategory = async (categoryKey) => {
             setError,
             transactionHistory,
             user,
-            // Add new category-related functions
             addCategory,
             getCategories,
             deleteCategory,

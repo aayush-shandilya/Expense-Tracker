@@ -9,14 +9,16 @@ const {
     addIncome,
     getIncomes,
     deleteIncome,
-    getIncomeFile
+    getIncomeFile,
+    getTotalIncome
 } = require('../controllers/income');
 
 const {
     addExpense,
     getExpenses,
     deleteExpense,
-    getExpenseFile  // Add the new controller
+    getExpenseFile,
+    getTotalExpense
 } = require('../controllers/expense');
 
 const {
@@ -46,5 +48,10 @@ router.post('/add-category', addCategory);
 router.get('/get-categories', getCategories);
 router.delete('/delete-category/:id', deleteCategory);
 router.get('/check-category/:id', checkCategory);
+
+
+// routes/transactions.js
+router.get('/get-total-income',  getTotalIncome);
+router.get('/get-total-expense', getTotalExpense);
 
 module.exports = router;

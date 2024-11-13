@@ -205,3 +205,29 @@ exports.getIncomes = async (req, res) => {
       });
   }
 };
+
+
+// controllers/income.js
+exports.getTotalIncome = async (req, res) => {
+  try {
+    const userId = req.user._id;
+    
+    // Aggregate to calculate total amount
+    const result = await Income.aggregate([
+      { $match: { user: userId } },
+      { $group: { _id: null, total: { $sum: "$amount" } } }
+    ]);
+    
+    const total = result.length > 0 ? result[0].total : 0;
+
+    return res.status(200).json({
+      success: true,
+      total: total
+    });
+  } catch (error) {
+    return res.status(500).json({ 
+      success: false, 
+      error: error.message 
+    });
+  }
+};

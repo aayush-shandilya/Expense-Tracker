@@ -71,18 +71,37 @@ exports.addExpense = async (req, res) => {
 exports.getExpenses = async (req, res) => {
     try {
         const userId = req.user._id;
+        const page = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.limit) || 4;
+        
+        // Calculate skip value for pagination
+        const skip = (page - 1) * limit;
+
+        // Get total count
+        const totalCount = await Expense.countDocuments({ user: userId });
+
+        // Get records for current page
         const expenses = await Expense.find({ user: userId })
-            .sort({ createdAt: -1 });
+            .sort({ createdAt: -1 })
+            .skip(skip)
+            .limit(limit);
 
         return res.status(200).json({
             success: true,
-            count: expenses.length,
-            data: expenses
+            data: expenses,
+            currentPage: page,
+            totalPages: Math.ceil(totalCount / limit),
+            totalItems: totalCount,
+            hasMore: skip + expenses.length < totalCount
         });
     } catch (error) {
-        return res.status(500).json({ success: false, error: error.message });
+        return res.status(500).json({ 
+            success: false, 
+            error: error.message 
+        });
     }
 };
+
 
 exports.getExpenseFile = async (req, res) => {
     try {
@@ -211,3 +230,26 @@ exports.deleteExpense = async (req, res) => {
         return res.status(500).json({ success: false, error: error.message });
     }
 };
+
+exports.getTotalExpense = async (req, res) => {
+    try {
+      const userId = req.user._id;
+      
+      const result = await Expense.aggregate([
+        { $match: { user: userId } },
+        { $group: { _id: null, total: { $sum: "$amount" } } }
+      ]);
+      
+      const total = result.length > 0 ? result[0].total : 0;
+  
+      return res.status(200).json({
+        success: true,
+        total: total
+      });
+    } catch (error) {
+      return res.status(500).json({ 
+        success: false, 
+        error: error.message 
+      });
+    }
+  };

@@ -13,6 +13,9 @@ export const GlobalProvider = ({ children }) => {
     const [error, setError] = useState(null);
     const [loading, setLoading] = useState(false);
     const { user } = useAuth();
+    const [totalIncomeAmount, setTotalIncomeAmount] = useState(0);
+    const [totalExpenseAmount, setTotalExpenseAmount] = useState(0);
+
 
     const getUserId = () => user?.id || user?._id;
 
@@ -65,66 +68,118 @@ export const GlobalProvider = ({ children }) => {
     };
     
 
+    // const getIncomes = async (page = 1, limit = 5) => {
+    //     if (!user) {
+    //         setIncomes([]);
+    //         return null;
+    //     }
+    
+    //     setError(null);
+    //     if (page === 1) {
+    //         setLoading(true); // Only show loading for initial page load
+    //     }
+    
+    //     try {
+    //         const response = await fetch(
+    //             `http://localhost:5001/api/v1/transactions/get-incomes?page=${page}&limit=${limit}`, 
+    //             {
+    //                 headers: getAuthHeader()
+    //             }
+    //         );
+            
+    //         const data = await response.json();
+            
+    //         if (!response.ok) {
+    //             throw new Error(data.message || 'Could not fetch incomes');
+    //         }
+    
+    //         const userIncomes = Array.isArray(data.data) 
+    //             ? data.data.filter(income => income.user === getUserId())
+    //             : [];
+            
+    //         // If it's the first page, replace the entire income array
+    //         // If it's a subsequent page, append to existing incomes
+    //         if (page === 1) {
+    //             setIncomes(userIncomes);
+    //         } else {
+    //             setIncomes(prevIncomes => [...prevIncomes, ...userIncomes]);
+    //         }
+    
+    //         return {
+    //             success: true,
+    //             data: userIncomes,
+    //             hasMore: userIncomes.length >= limit
+    //         };
+    
+    //     } catch (err) {
+    //         console.error('Error fetching incomes:', err);
+    //         setError(err.message);
+    //         if (page === 1) {
+    //             setIncomes([]);
+    //         }
+    //         return {
+    //             success: false,
+    //             data: [],
+    //             hasMore: false
+    //         };
+    //     } finally {
+    //         if (page === 1) {
+    //             setLoading(false);
+    //         }
+    //     }
+    // };
+
     const getIncomes = async (page = 1, limit = 5) => {
         if (!user) {
-            setIncomes([]);
-            return null;
+          setIncomes([]);
+          return null;
         }
     
         setError(null);
         if (page === 1) {
-            setLoading(true); // Only show loading for initial page load
+          setLoading(true);
         }
     
         try {
-            const response = await fetch(
-                `http://localhost:5001/api/v1/transactions/get-incomes?page=${page}&limit=${limit}`, 
-                {
-                    headers: getAuthHeader()
-                }
-            );
-            
-            const data = await response.json();
-            
-            if (!response.ok) {
-                throw new Error(data.message || 'Could not fetch incomes');
+          const response = await fetch(
+            `http://localhost:5001/api/v1/transactions/get-incomes?page=${page}&limit=${limit}`,
+            {
+              headers: {
+                'Authorization': `Bearer ${localStorage.getItem('token')}`
+              }
             }
+          );
     
-            const userIncomes = Array.isArray(data.data) 
-                ? data.data.filter(income => income.user === getUserId())
-                : [];
-            
-            // If it's the first page, replace the entire income array
-            // If it's a subsequent page, append to existing incomes
-            if (page === 1) {
-                setIncomes(userIncomes);
-            } else {
-                setIncomes(prevIncomes => [...prevIncomes, ...userIncomes]);
-            }
+          const data = await response.json();
     
-            return {
-                success: true,
-                data: userIncomes,
-                hasMore: userIncomes.length >= limit
-            };
+          if (!response.ok) {
+            throw new Error(data.error || 'Could not fetch incomes');
+          }
     
+          if (page === 1) {
+            setIncomes(data.data || []);
+          } else {
+            setIncomes(prevIncomes => [...prevIncomes, ...(data.data || [])]);
+          }
+    
+          return {
+            success: true,
+            data: data.data,
+            hasMore: data.hasMore
+          };
         } catch (err) {
-            console.error('Error fetching incomes:', err);
-            setError(err.message);
-            if (page === 1) {
-                setIncomes([]);
-            }
-            return {
-                success: false,
-                data: [],
-                hasMore: false
-            };
+          console.error('Error fetching incomes:', err);
+          setError(err.message);
+          if (page === 1) {
+            setIncomes([]);
+          }
+          return { success: false, data: [], hasMore: false };
         } finally {
-            if (page === 1) {
-                setLoading(false);
-            }
+          if (page === 1) {
+            setLoading(false);
+          }
         }
-    };
+      };
     const deleteIncome = async (id) => {
         if (!user) {
             setError('You must be logged in to delete income');
@@ -296,37 +351,150 @@ const downloadExpenseFile = async (expenseId, fileName, fileType) => {
 };
 
 
-const getExpenses = async () => {
+// const getExpenses = async () => {
+//     if (!user) {
+//         setExpenses([]);
+//         return;
+//     }
+
+//     setError(null);
+//     setLoading(true);
+//     try {
+//         const response = await fetch(`http://localhost:5001/api/v1/transactions/get-expenses`, {
+//             headers: {
+//                 'Content-Type': 'application/json',
+//                 'Authorization': `Bearer ${localStorage.getItem('token')}`
+//             }
+//         });
+        
+//         const data = await response.json();
+        
+//         if (!response.ok) {
+//             throw new Error(data.error || 'Could not fetch expenses');
+//         }
+
+//         setExpenses(data.data || []);
+//     } catch (err) {
+//         console.error('Error fetching expenses:', err);
+//         setError(err.message);
+//         setExpenses([]);
+//     } finally {
+//         setLoading(false);
+//     }
+// };
+
+// const getExpenses = async (page = 1, limit = 4) => {
+//     if (!user) {
+//         setExpenses([]);
+//         return null;
+//     }
+
+//     setError(null);
+//     if (page === 1) {
+//         setLoading(true); // Only show loading for initial page
+//     }
+
+//     try {
+//         const response = await fetch(
+//             `http://localhost:5001/api/v1/transactions/get-expenses?page=${page}&limit=${limit}`,
+//             {
+//                 headers: {
+//                     'Content-Type': 'application/json',
+//                     'Authorization': `Bearer ${localStorage.getItem('token')}`
+//                 }
+//             }
+//         );
+
+//         const data = await response.json();
+
+//         if (!response.ok) {
+//             throw new Error(data.error || 'Could not fetch expenses');
+//         }
+
+//         // If it's the first page, replace the entire expenses array
+//         // If it's a subsequent page, append to existing expenses
+//         if (page === 1) {
+//             setExpenses(data.data || []);
+//         } else {
+//             setExpenses(prevExpenses => [...prevExpenses, ...(data.data || [])]);
+//         }
+
+//         return {
+//             success: true,
+//             data: data.data,
+//             hasMore: data.hasMore
+//         };
+
+//     } catch (err) {
+//         console.error('Error fetching expenses:', err);
+//         setError(err.message);
+//         if (page === 1) {
+//             setExpenses([]);
+//         }
+//         return {
+//             success: false,
+//             data: [],
+//             hasMore: false
+//         };
+//     } finally {
+//         if (page === 1) {
+//             setLoading(false);
+//         }
+//     }
+// };
+
+const getExpenses = async (page = 1, limit = 4) => {
     if (!user) {
-        setExpenses([]);
-        return;
+      setExpenses([]);
+      return null;
     }
 
     setError(null);
-    setLoading(true);
-    try {
-        const response = await fetch(`http://localhost:5001/api/v1/transactions/get-expenses`, {
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${localStorage.getItem('token')}`
-            }
-        });
-        
-        const data = await response.json();
-        
-        if (!response.ok) {
-            throw new Error(data.error || 'Could not fetch expenses');
-        }
-
-        setExpenses(data.data || []);
-    } catch (err) {
-        console.error('Error fetching expenses:', err);
-        setError(err.message);
-        setExpenses([]);
-    } finally {
-        setLoading(false);
+    if (page === 1) {
+      setLoading(true);
     }
-};
+
+    try {
+      const response = await fetch(
+        `http://localhost:5001/api/v1/transactions/get-expenses?page=${page}&limit=${limit}`,
+        {
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('token')}`
+          }
+        }
+      );
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Could not fetch expenses');
+      }
+
+      if (page === 1) {
+        setExpenses(data.data || []);
+      } else {
+        setExpenses(prevExpenses => [...prevExpenses, ...(data.data || [])]);
+      }
+
+      return {
+        success: true,
+        data: data.data,
+        hasMore: data.hasMore
+      };
+    } catch (err) {
+      console.error('Error fetching expenses:', err);
+      setError(err.message);
+      if (page === 1) {
+        setExpenses([]);
+      }
+      return { success: false, data: [], hasMore: false };
+    } finally {
+      if (page === 1) {
+        setLoading(false);
+      }
+    }
+  };
+
 
 const deleteExpense = async (id) => {
     if (!user) {
@@ -535,6 +703,51 @@ const deleteCategory = async (categoryKey) => {
             setLoading(false);
         }
     };
+    const getTotalIncome = async () => {
+        if (!user) return;
+        
+        try {
+          const response = await fetch(
+            `http://localhost:5001/api/v1/transactions/get-total-income`, 
+            {
+              headers: {
+                'Authorization': `Bearer ${localStorage.getItem('token')}`
+              }
+            }
+          );
+          
+          const data = await response.json();
+          
+          if (response.ok) {
+            setTotalIncomeAmount(data.total);
+          }
+        } catch (err) {
+          console.error('Error fetching total income:', err);
+        }
+      };
+    
+      const getTotalExpense = async () => {
+        if (!user) return;
+        
+        try {
+          const response = await fetch(
+            `http://localhost:5001/api/v1/transactions/get-total-expense`,
+            {
+              headers: {
+                'Authorization': `Bearer ${localStorage.getItem('token')}`
+              }
+            }
+          );
+          
+          const data = await response.json();
+          
+          if (response.ok) {
+            setTotalExpenseAmount(data.total);
+          }
+        } catch (err) {
+          console.error('Error fetching total expense:', err);
+        }
+      };
 
     return (
         <GlobalContext.Provider value={{
@@ -548,6 +761,12 @@ const deleteCategory = async (categoryKey) => {
             expenses,
             downloadExpenseFile,
             deleteExpense,
+            
+            totalIncomeAmount,
+            totalExpenseAmount,
+            getTotalIncome,
+            getTotalExpense,
+
             totalIncome,
             totalExpense,
             totalBalance,

@@ -539,7 +539,9 @@ function Income() {
     totalIncome,
     loading,
     error,
-    user
+    user,
+    totalIncomeAmount,
+    getTotalIncome
   } = useGlobalContext();
 
   const [page, setPage] = useState(1);
@@ -547,10 +549,17 @@ function Income() {
   const [loadingMore, setLoadingMore] = useState(false);
   const itemsPerPage = 5;
 
-  // Initial load
+  // // Initial load
+  // useEffect(() => {
+  //   if (user) {
+  //     loadInitialIncomes();
+  //   }
+  // }, [user]);
+
   useEffect(() => {
     if (user) {
-      loadInitialIncomes();
+      getTotalIncome(); // Get total amount immediately
+      getIncomes(1, 5); // Get first page of transactions
     }
   }, [user]);
 
@@ -609,7 +618,7 @@ function Income() {
               color="primary.main"
               sx={{ fontWeight: 'bold', fontFamily: 'Roboto, sans-serif' }}
             >
-              Total Income: ₹{memoizedTotalIncome.toLocaleString()}
+              Total Income: ₹{totalIncomeAmount.toLocaleString()}
             </Typography>
           </Box>
           

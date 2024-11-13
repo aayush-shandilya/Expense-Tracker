@@ -256,41 +256,70 @@ function Expenses() {
     loading,
     error,
     setError,
-    user
+    user,
+    totalExpenseAmount,
+    getTotalExpense
   } = useGlobalContext();
 
+  const [displayedExpenses, setDisplayedExpenses] = useState([]);
   const [page, setPage] = useState(1);
-  const itemPerPage = 4;
+  const [hasMore, setHasMore] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const itemsPerPage = 4;
+
+  // // Initial load
+  // useEffect(() => {
+  //   if (user) {
+  //     loadInitialExpenses();
+  //   }
+  // }, [user]);
 
   useEffect(() => {
     if (user) {
-      getExpenses();
+      getTotalExpense(); // Get total amount immediately
+      getExpenses(1, 4); // Get first page of transactions
     }
   }, [user]);
+
+  const loadInitialExpenses = async () => {
+    setPage(1);
+    await getExpenses(1, itemsPerPage);
+  };
+
+  const handleLoadMore = async () => {
+    if (loadingMore) return;
+    
+    setLoadingMore(true);
+    try {
+      const nextPage = page + 1;
+      const response = await getExpenses(nextPage, itemsPerPage);
+      
+      if (response?.success) {
+        setPage(nextPage);
+        setHasMore(response.hasMore);
+      }
+    } catch (err) {
+      console.error('Error loading more expenses:', err);
+      setError('Failed to load more expenses');
+    } finally {
+      setLoadingMore(false);
+    }
+  };
 
   const handleDelete = useCallback(async (id) => {
     try {
       const result = await deleteExpense(id);
       if (result.success) {
-        getExpenses();
+        loadInitialExpenses(); // Reload from first page after deletion
       } else {
         setError(result.error || 'Failed to delete expense');
       }
     } catch (err) {
       setError('Failed to delete expense. Please try again.');
     }
-  }, [deleteExpense, setError, getExpenses]);
+  }, [deleteExpense, setError]);
 
   const memoizedTotalExpense = useMemo(() => totalExpense(), [expenses]);
-
-  const totalPages = Math.ceil((expenses?.length || 0) / itemPerPage);
-  const startIndex = (page - 1) * itemPerPage;
-  const endIndex = startIndex + itemPerPage;
-  const currentExpenses = expenses?.slice(startIndex, endIndex) || [];
-
-  const handlePageChange = (event, newPage) => {
-    setPage(newPage);
-  };
 
   if (!user) {
     return (
@@ -308,14 +337,13 @@ function Expenses() {
         {/* Header Section */}
         <Box sx={{ mb: 2, mt: 1 }}>
           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
-            <Typography variant="h5" component="h1">
-            </Typography>
+            <Typography variant="h5" component="h1" />
             <Typography
               variant="h5"
               color="error"
               sx={{ fontWeight: 'bold', fontFamily: 'Roboto, sans-serif' }}
             >
-              Total: ₹{memoizedTotalExpense.toLocaleString()}
+              Total: ₹{totalExpenseAmount.toLocaleString()}
             </Typography>
           </Box>
           
@@ -353,10 +381,7 @@ function Expenses() {
                   }}
                 >
                   <Typography variant="subtitle1" color="text.secondary">
-                    Total Transactions: {expenses?.length || 0}
-                  </Typography>
-                  <Typography variant="subtitle1" color="text.secondary">
-                    Showing {startIndex + 1}-{Math.min(endIndex, expenses?.length || 0)} of {expenses?.length || 0}
+                    Recent Transactions
                   </Typography>
                 </Box>
 
@@ -366,58 +391,55 @@ function Expenses() {
                   flexGrow: 1,
                   mb: 2
                 }}>
-
-
-              {loading ? (
-                  <Box display="flex" justifyContent="center" p={2}>
-                    <CircularProgress size={24} />
-                  </Box>
-                ) : currentExpenses && currentExpenses.length > 0 ? (
-                  currentExpenses.map((expense) => (
-                    <ExpenseItem
-                      key={expense._id}
-                      id={expense._id}
-                      title={expense.title}
-                      description={expense.description}
-                      amount={expense.amount}
-                      date={expense.date}
-                      type={expense.type}
-                      category={expense.category}
-                      categories={expense.categories}
-                      deleteItem={handleDelete}
-                      fileUrl={expense.fileId ? `/api/expenses/get-file/${expense._id}` : null}
-                      fileName={expense.fileName}
-                      fileType={expense.fileType}
-                    />
-                  ))
-                ) : (
-                  <Alert severity="info">
-                    No expense records found.
-                  </Alert>
-                )}
-                </Box>
-
-                {/* Fixed Pagination at Bottom */}
-                {currentExpenses && currentExpenses.length > 0 && (
-                  <Box sx={{ 
-                    mt: 'auto',
-                    pt: 2,
-                    borderTop: '1px solid rgba(0, 0, 0, 0.1)'
-                  }}>
-                    <Stack spacing={2}>
-                      <Box display="flex" justifyContent="center">
-                        <Pagination
-                          count={totalPages}
-                          page={page}
-                          onChange={handlePageChange}
-                          color="primary"
-                          shape="rounded"
-                          size="medium"
+                  {loading && !loadingMore ? (
+                    <Box display="flex" justifyContent="center" p={2}>
+                      <CircularProgress size={24} />
+                    </Box>
+                  ) : expenses && expenses.length > 0 ? (
+                    <>
+                      {expenses.map((expense) => (
+                        <ExpenseItem
+                          key={expense._id}
+                          id={expense._id}
+                          title={expense.title}
+                          description={expense.description}
+                          amount={expense.amount}
+                          date={expense.date}
+                          type={expense.type}
+                          category={expense.category}
+                          categories={expense.categories}
+                          deleteItem={handleDelete}
+                          fileUrl={expense.fileId ? `/api/expenses/get-file/${expense._id}` : null}
+                          fileName={expense.fileName}
+                          fileType={expense.fileType}
                         />
-                      </Box>
-                    </Stack>
-                  </Box>
-                )}
+                      ))}
+                      
+                      {/* Load More Button */}
+                      {hasMore && (
+                        <Box sx={{ display: 'flex', justifyContent: 'center', mt: 2 }}>
+                          <Button
+                            variant="outlined"
+                            onClick={handleLoadMore}
+                            disabled={loadingMore}
+                            sx={{ minWidth: 200 }}
+                          >
+                            {loadingMore ? (
+                              <>
+                                <CircularProgress size={20} sx={{ mr: 1 }} />
+                                Loading...
+                              </>
+                            ) : 'Load More'}
+                          </Button>
+                        </Box>
+                      )}
+                    </>
+                  ) : (
+                    <Alert severity="info">
+                      No expense records found.
+                    </Alert>
+                  )}
+                </Box>
               </ContentWrapper>
             </StyledPaper>
           </Grid>
@@ -428,3 +450,185 @@ function Expenses() {
 }
 
 export default Expenses;
+
+// function Expenses() {
+//   const {
+//     expenses,
+//     getExpenses,
+//     deleteExpense,
+//     totalExpense,
+//     loading,
+//     error,
+//     setError,
+//     user
+//   } = useGlobalContext();
+
+//   const [page, setPage] = useState(1);
+//   const itemPerPage = 4;
+
+//   useEffect(() => {
+//     if (user) {
+//       getExpenses();
+//     }
+//   }, [user]);
+
+//   const handleDelete = useCallback(async (id) => {
+//     try {
+//       const result = await deleteExpense(id);
+//       if (result.success) {
+//         getExpenses();
+//       } else {
+//         setError(result.error || 'Failed to delete expense');
+//       }
+//     } catch (err) {
+//       setError('Failed to delete expense. Please try again.');
+//     }
+//   }, [deleteExpense, setError, getExpenses]);
+
+//   const memoizedTotalExpense = useMemo(() => totalExpense(), [expenses]);
+
+//   const totalPages = Math.ceil((expenses?.length || 0) / itemPerPage);
+//   const startIndex = (page - 1) * itemPerPage;
+//   const endIndex = startIndex + itemPerPage;
+//   const currentExpenses = expenses?.slice(startIndex, endIndex) || [];
+
+//   const handlePageChange = (event, newPage) => {
+//     setPage(newPage);
+//   };
+
+//   if (!user) {
+//     return (
+//       <Container>
+//         <Alert severity="warning">
+//           Please log in to view your expense data.
+//         </Alert>
+//       </Container>
+//     );
+//   }
+
+//   return (
+//     <Container maxWidth="lg">
+//       <ContentContainer>
+//         {/* Header Section */}
+//         <Box sx={{ mb: 2, mt: 1 }}>
+//           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
+//             <Typography variant="h5" component="h1">
+//             </Typography>
+//             <Typography
+//               variant="h5"
+//               color="error"
+//               sx={{ fontWeight: 'bold', fontFamily: 'Roboto, sans-serif' }}
+//             >
+//               Total: ₹{memoizedTotalExpense.toLocaleString()}
+//             </Typography>
+//           </Box>
+          
+//           {error && (
+//             <Alert severity="error" sx={{ mb: 1 }}>
+//               {error}
+//             </Alert>
+//           )}
+//         </Box>
+
+//         {/* Main Content */}
+//         <Grid container spacing={3} sx={{ flexGrow: 1 }}>
+//           {/* Form Section */}
+//           <Grid item xs={12} md={6} sx={{ height: '100%' }}>
+//             <StyledPaper>
+//               <ContentWrapper>
+//                 <ExpensesForm />
+//               </ContentWrapper>
+//             </StyledPaper>
+//           </Grid>
+          
+//           {/* Expense List Section */}
+//           <Grid item xs={12} md={6} sx={{ height: '100%' }}>
+//             <StyledPaper>
+//               <ContentWrapper>
+//                 {/* Transactions info Header */}
+//                 <Box 
+//                   sx={{ 
+//                     display: 'flex', 
+//                     justifyContent: 'space-between', 
+//                     alignItems: 'center',
+//                     mb: 2,
+//                     pb: 2,
+//                     borderBottom: '1px solid rgba(0, 0, 0, 0.1)'
+//                   }}
+//                 >
+//                   <Typography variant="subtitle1" color="text.secondary">
+//                     Total Transactions: {expenses?.length || 0}
+//                   </Typography>
+//                   <Typography variant="subtitle1" color="text.secondary">
+//                     Showing {startIndex + 1}-{Math.min(endIndex, expenses?.length || 0)} of {expenses?.length || 0}
+//                   </Typography>
+//                 </Box>
+
+//                 {/* Scrollable Content Area */}
+//                 <Box sx={{ 
+//                   overflowY: 'auto', 
+//                   flexGrow: 1,
+//                   mb: 2
+//                 }}>
+
+
+//               {loading ? (
+//                   <Box display="flex" justifyContent="center" p={2}>
+//                     <CircularProgress size={24} />
+//                   </Box>
+//                 ) : currentExpenses && currentExpenses.length > 0 ? (
+//                   currentExpenses.map((expense) => (
+//                     <ExpenseItem
+//                       key={expense._id}
+//                       id={expense._id}
+//                       title={expense.title}
+//                       description={expense.description}
+//                       amount={expense.amount}
+//                       date={expense.date}
+//                       type={expense.type}
+//                       category={expense.category}
+//                       categories={expense.categories}
+//                       deleteItem={handleDelete}
+//                       fileUrl={expense.fileId ? `/api/expenses/get-file/${expense._id}` : null}
+//                       fileName={expense.fileName}
+//                       fileType={expense.fileType}
+//                     />
+//                   ))
+//                 ) : (
+//                   <Alert severity="info">
+//                     No expense records found.
+//                   </Alert>
+//                 )}
+//                 </Box>
+
+//                 {/* Fixed Pagination at Bottom */}
+//                 {currentExpenses && currentExpenses.length > 0 && (
+//                   <Box sx={{ 
+//                     mt: 'auto',
+//                     pt: 2,
+//                     borderTop: '1px solid rgba(0, 0, 0, 0.1)'
+//                   }}>
+//                     <Stack spacing={2}>
+//                       <Box display="flex" justifyContent="center">
+//                         <Pagination
+//                           count={totalPages}
+//                           page={page}
+//                           onChange={handlePageChange}
+//                           color="primary"
+//                           shape="rounded"
+//                           size="medium"
+//                         />
+//                       </Box>
+//                     </Stack>
+//                   </Box>
+//                 )}
+//               </ContentWrapper>
+//             </StyledPaper>
+//           </Grid>
+//         </Grid>
+//       </ContentContainer>
+//     </Container>
+//   );
+// }
+
+// export default Expenses;

@@ -174,19 +174,34 @@ exports.deleteIncome = async (req, res) => {
     }
 };
 
-exports.getIncomes = async (req, res) => {
-    try {
-        const userId = req.user._id;
-        
-        const incomes = await Income.find({ user: userId })
-            .sort({ createdAt: -1 });
 
-        return res.status(200).json({
-            success: true,
-            count: incomes.length,
-            data: incomes
-        });
-    } catch (error) {
-        return res.status(500).json({ success: false, error: error.message });
-    }
+
+// In your backend route handler
+exports.getIncomes = async (req, res) => {
+  try {
+      const page = parseInt(req.query.page) || 1;
+      const limit = parseInt(req.query.limit) || 5;
+      const skip = (page - 1) * limit;
+
+      const incomes = await Income.find({ user: req.user.id })
+          .sort({ createdAt: -1 })
+          .skip(skip)
+          .limit(limit);
+
+      const total = await Income.countDocuments({ user: req.user.id });
+
+      res.status(200).json({
+          success: true,
+          data: incomes,
+          currentPage: page,
+          totalPages: Math.ceil(total / limit),
+          total,
+          hasMore: skip + incomes.length < total
+      });
+  } catch (error) {
+      res.status(500).json({
+          success: false,
+          message: error.message
+      });
+  }
 };

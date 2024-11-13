@@ -63,36 +63,66 @@ export const GlobalProvider = ({ children }) => {
             setLoading(false);
         }
     };
-    const getIncomes = async () => {
+    
+
+    const getIncomes = async (page = 1, limit = 5) => {
         if (!user) {
             setIncomes([]);
-            return;
+            return null;
         }
-
+    
         setError(null);
-        setLoading(true);
+        if (page === 1) {
+            setLoading(true); // Only show loading for initial page load
+        }
+    
         try {
-            const response = await fetch(`http://localhost:5001/api/v1/transactions/get-incomes`, {
-                headers: getAuthHeader()
-            });
+            const response = await fetch(
+                `http://localhost:5001/api/v1/transactions/get-incomes?page=${page}&limit=${limit}`, 
+                {
+                    headers: getAuthHeader()
+                }
+            );
             
             const data = await response.json();
             
             if (!response.ok) {
                 throw new Error(data.message || 'Could not fetch incomes');
             }
-
+    
             const userIncomes = Array.isArray(data.data) 
                 ? data.data.filter(income => income.user === getUserId())
                 : [];
             
-            setIncomes(userIncomes);
+            // If it's the first page, replace the entire income array
+            // If it's a subsequent page, append to existing incomes
+            if (page === 1) {
+                setIncomes(userIncomes);
+            } else {
+                setIncomes(prevIncomes => [...prevIncomes, ...userIncomes]);
+            }
+    
+            return {
+                success: true,
+                data: userIncomes,
+                hasMore: userIncomes.length >= limit
+            };
+    
         } catch (err) {
             console.error('Error fetching incomes:', err);
             setError(err.message);
-            setIncomes([]);
+            if (page === 1) {
+                setIncomes([]);
+            }
+            return {
+                success: false,
+                data: [],
+                hasMore: false
+            };
         } finally {
-            setLoading(false);
+            if (page === 1) {
+                setLoading(false);
+            }
         }
     };
     const deleteIncome = async (id) => {

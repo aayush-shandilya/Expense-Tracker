@@ -1,4 +1,4 @@
-import {dashboard, expenses, transactions, trend, categories} from '../utils/icon'
+import {dashboard, expenses, transactions, trend, categories,chat} from '../utils/icon'
 
 export const menuItems = [
     {
@@ -24,5 +24,11 @@ export const menuItems = [
         title: 'Expenses Category',
         icon: categories,  // You'll need to add this icon to your icons file
         link: "/dashboard"
+    },
+    {
+        id:6,
+        title: 'Chat',
+        icon: chat,
+        link:"#"
     }
 ]

@@ -8,12 +8,10 @@ exports.addExpense = async (req, res) => {
         const userId = req.user._id;
         const file = req.file;
 
-        // Debug logging
         console.log('Adding expense for user:', userId);
         console.log('Expense data:', { title, amount, categories, description, date });
         if (file) console.log('File data:', { name: file.originalname, type: file.mimetype });
 
-        // Validation
         if (!title || !description || !date) {
             return res.status(400).json({ success: false, error: 'All fields are required!' });
         }
@@ -33,7 +31,6 @@ exports.addExpense = async (req, res) => {
             });
         }
 
-        // Prepare expense data
         const expenseData = {
             title,
             amount: numericAmount,
@@ -44,7 +41,6 @@ exports.addExpense = async (req, res) => {
             type: 'expense'
         };
 
-        // Handle file upload if present
         if (file) {
             const fileId = new ObjectId();
             const uploadStream = req.bucket.openUploadStreamWithId(fileId, file.originalname);
@@ -74,13 +70,10 @@ exports.getExpenses = async (req, res) => {
         const page = parseInt(req.query.page) || 1;
         const limit = parseInt(req.query.limit) || 4;
         
-        // Calculate skip value for pagination
         const skip = (page - 1) * limit;
 
-        // Get total count
         const totalCount = await Expense.countDocuments({ user: userId });
 
-        // Get records for current page
         const expenses = await Expense.find({ user: userId })
             .sort({ createdAt: -1 })
             .skip(skip)
@@ -114,7 +107,6 @@ exports.getExpenseFile = async (req, res) => {
             return res.status(404).json({ success: false, error: 'File not found!' });
         }
 
-        // Check if preview mode is requested
         const isPreview = req.query.preview === 'true';
 
         if (isPreview) {
@@ -133,7 +125,7 @@ exports.getExpenseFile = async (req, res) => {
                 
                 try {
                     if (expense.fileType === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
-                        // Convert DOCX to text
+
                         const result = await mammoth.extractRawText({ buffer });
                         res.json({
                             success: true,
@@ -144,7 +136,6 @@ exports.getExpenseFile = async (req, res) => {
                             }
                         });
                     } else if (expense.fileType.includes('text') || expense.fileType.includes('application/json')) {
-                        // Handle text files
                         const fileContent = buffer.toString('utf-8');
                         res.json({
                             success: true,
@@ -166,7 +157,6 @@ exports.getExpenseFile = async (req, res) => {
                 }
             });
         } else {
-            // Normal file download
             res.set({
                 'Content-Type': expense.fileType,
                 'Content-Disposition': `attachment; filename="${expense.fileName}"`,
@@ -213,7 +203,6 @@ exports.deleteExpense = async (req, res) => {
             });
         }
 
-        // Delete associated file if it exists
         if (expense.fileId) {
             await req.bucket.delete(expense.fileId);
         }

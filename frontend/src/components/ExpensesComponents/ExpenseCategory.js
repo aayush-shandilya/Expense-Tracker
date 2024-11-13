@@ -90,6 +90,8 @@ function ExpensesCategory() {
   const [categories, setCategories] = useState([]);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [selectedCategoryForDelete, setSelectedCategoryForDelete] = useState(null);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [hasMore, setHasMore] = useState(true);
   
   const [page, setPage] = useState(1);
   const itemsPerPage = 1; // Changed to 5 items per page for better UX
@@ -222,6 +224,22 @@ const handleCategoryPageChange = (event, newPage) => {
     );
   }
 
+  const handleLoadMore = async () => {
+    setLoadingMore(true);
+    const nextPage = page + 1;
+    try {
+      const response = await getExpenses(nextPage, itemsPerPage);
+      if (response?.data?.length < itemsPerPage) {
+        setHasMore(false);
+      }
+      setPage(nextPage);
+    } catch (err) {
+      console.error('Error loading more incomes:', err);
+    } finally {
+      setLoadingMore(false);
+    }
+  };
+
   return (
     <Box sx={{ mx: 1 }}>
       <ContentWrapper>
@@ -279,37 +297,6 @@ const handleCategoryPageChange = (event, newPage) => {
           </Box>
         ) : (
           <>
-            {/* Category Management Section remains the same... */}
-            {/* <CategoryCard>
-              <Typography variant="h5" gutterBottom sx={{ fontFamily: 'Roboto, sans-serif' }}>
-                Manage Categories
-              </Typography>
-              <Grid container spacing={2}>
-                {categories.filter(cat => cat !== 'all').map(category => (
-                  <Grid item xs={12} sm={6} md={4} key={category}>
-                    <CategoryItem>
-                      <Box sx={{ display: 'flex', alignItems: 'center', flex: 1 }}>
-                        <Box sx={{ mr: 2 }}>{getCategoryIcon(category)}</Box>
-                        <Typography sx={{ fontFamily: 'Roboto, sans-serif' }}>{getCategoryLabel(category)}</Typography>
-                      </Box>
-                      <IconButton
-                        color="error"
-                        onClick={() => {
-                          setSelectedCategoryForDelete({
-                            key: category,
-                            label: getCategoryLabel(category)
-                          });
-                          setIsDeleteModalOpen(true);
-                        }}
-                      >
-                        <DeleteIcon />
-                      </IconButton>
-                    </CategoryItem>
-                  </Grid>
-                ))}
-              </Grid>
-            </CategoryCard> */}
-
             <CategoryCard>
               <Box sx={{ 
                 display: 'flex', 
@@ -320,10 +307,7 @@ const handleCategoryPageChange = (event, newPage) => {
                 <Typography variant="h5" sx={{ fontFamily: 'Roboto, sans-serif' }}>
                   Manage Categories
                 </Typography>
-                <Typography variant="subtitle1" color="text.secondary">
-                  Showing {((categoryPage - 1) * categoriesPerPage) + 1}-
-                  {Math.min(categoryPage * categoriesPerPage, categories.filter(cat => cat !== 'all').length)} of {categories.filter(cat => cat !== 'all').length}
-                </Typography>
+                
               </Box>
 
               <Grid container spacing={2}>
@@ -417,7 +401,7 @@ const handleCategoryPageChange = (event, newPage) => {
 
                     <Typography variant="subtitle1" color="text.secondary">
                       Showing {((page - 1) * itemsPerPage) + 1}
-                      {Math.min(page * itemsPerPage, selectedCategoryData.expenses.length)} of {selectedCategoryData.expenses.length}
+                       of {selectedCategoryData.expenses.length}
                     </Typography>
                   </Box>
 
@@ -451,7 +435,7 @@ const handleCategoryPageChange = (event, newPage) => {
                     ))}
                   </List>
 
-                  {totalPages > 1 && (
+                  {/* {totalPages > 1 && (
                     <Stack spacing={2}>
                       <Box display="flex" justifyContent="center">
                         <Pagination
@@ -463,7 +447,22 @@ const handleCategoryPageChange = (event, newPage) => {
                           size="medium"
                         />
                       </Box>
-                    </Stack>
+                    </Stack> */}
+
+                      {hasMore && (
+                        <Box sx={{ display: 'flex', justifyContent: 'center'}}>
+                          <Button
+                            variant="outlined"
+                            onClick={handleLoadMore}
+                            disabled={loadingMore}
+                            sx={{ minWidth: 200 }}
+                          >
+                            {loadingMore ? (
+                              <CircularProgress size={20} sx={{ mr: 1 }} />
+                            ) : null}
+                            {loadingMore ? 'Loading...' : 'Load More'}
+                          </Button>
+                        </Box>
                   )}
                 </>
               ) : (
@@ -477,7 +476,6 @@ const handleCategoryPageChange = (event, newPage) => {
           </>
         )}
 
-        {/* Modals remain the same... */}
         <AddCategoryModal
           isOpen={isAddModalOpen}
           onClose={() => setIsAddModalOpen(false)}

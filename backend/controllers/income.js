@@ -1,7 +1,7 @@
 // controllers/income.js
 const Income = require("../models/incomeModel");
 const mongoose = require('mongoose');
-const { ObjectId } = require('mongodb');  // Import ObjectId
+const { ObjectId } = require('mongodb');
 exports.addIncome = async (req, res) => {
     try {
         const { title, amount, category, description, date } = req.body;

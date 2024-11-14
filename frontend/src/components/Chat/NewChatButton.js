@@ -1,135 +1,5 @@
-// // // components/Chat/NewChatButton.js
-// // import React, { useState } from 'react';
-// // import { 
-// //     Box,
-// //     Button, 
-// //     Dialog, 
-// //     DialogTitle, 
-// //     DialogContent, 
-// //     DialogActions,
-// //     TextField,
-// //     List,
-// //     ListItem,
-// //     ListItemText,
-// //     ListItemAvatar,
-// //     Avatar,
-// //     CircularProgress
-// // } from '@mui/material';
-// // import AddIcon from '@mui/icons-material/Add';
 
-// // const NewChatButton = ({ onChatCreated }) => {
-// //     const [open, setOpen] = useState(false);
-// //     const [searchTerm, setSearchTerm] = useState('');
-// //     const [loading, setLoading] = useState(false);
-// //     const [users, setUsers] = useState([]);
-
-// //     const handleSearch = async (value) => {
-// //         setSearchTerm(value);
-// //         if (value.length < 2) {
-// //             setUsers([]);
-// //             return;
-// //         }
-
-// //         setLoading(true);
-// //         try {
-// //             const response = await fetch(`http://localhost:5001/api/v1/auth/search?term=${value}`, {
-// //                 headers: {
-// //                     'Authorization': `Bearer ${localStorage.getItem('token')}`
-// //                 }
-// //             });
-// //             const data = await response.json();
-// //             setUsers(data);
-// //         } catch (error) {
-// //             console.error('Error searching users:', error);
-// //         }
-// //         setLoading(false);
-// //     };
-
-// //     const startChat = async (userId) => {
-// //         try {
-// //             const response = await fetch('http://localhost:5001/api/v1/chat/private', {
-// //                 method: 'POST',
-// //                 headers: {
-// //                     'Content-Type': 'application/json',
-// //                     'Authorization': `Bearer ${localStorage.getItem('token')}`
-// //                 },
-// //                 body: JSON.stringify({ participantId: userId })
-// //             });
-// //             const data = await response.json();
-// //             onChatCreated();
-// //             setOpen(false);
-// //         } catch (error) {
-// //             console.error('Error creating chat:', error);
-// //         }
-// //     };
-
-// //     return (
-// //         <>
-// //             <Button
-// //                 fullWidth
-// //                 variant="contained"
-// //                 startIcon={<AddIcon />}
-// //                 onClick={() => setOpen(true)}
-// //                 sx={{
-// //                     m: 2,
-// //                     backgroundColor: 'rgba(34, 34, 96, 0.8)',
-// //                     '&:hover': {
-// //                         backgroundColor: 'rgba(34, 34, 96, 1)'
-// //                     }
-// //                 }}
-// //             >
-// //                 New Chat
-// //             </Button>
-
-// //             <Dialog open={open} onClose={() => setOpen(false)} fullWidth maxWidth="sm">
-// //                 <DialogTitle>Start New Chat</DialogTitle>
-// //                 <DialogContent>
-// //                     <TextField
-// //                         autoFocus
-// //                         margin="dense"
-// //                         label="Search users"
-// //                         fullWidth
-// //                         value={searchTerm}
-// //                         onChange={(e) => handleSearch(e.target.value)}
-// //                         variant="outlined"
-// //                     />
-                    
-// //                     {loading && (
-// //                         <Box sx={{ display: 'flex', justifyContent: 'center', mt: 2 }}>
-// //                             <CircularProgress size={24} />
-// //                         </Box>
-// //                     )}
-
-// //                     <List>
-// //                         {users.map((user) => (
-// //                             <ListItem 
-// //                                 button 
-// //                                 key={user._id}
-// //                                 onClick={() => startChat(user._id)}
-// //                             >
-// //                                 <ListItemAvatar>
-// //                                     <Avatar>{user.name[0]}</Avatar>
-// //                                 </ListItemAvatar>
-// //                                 <ListItemText 
-// //                                     primary={user.name} 
-// //                                     secondary={user.email} 
-// //                                 />
-// //                             </ListItem>
-// //                         ))}
-// //                     </List>
-// //                 </DialogContent>
-// //                 <DialogActions>
-// //                     <Button onClick={() => setOpen(false)}>Cancel</Button>
-// //                 </DialogActions>
-// //             </Dialog>
-// //         </>
-// //     );
-// // };
-
-// // export default NewChatButton;
-
-
-// // components/Chat/NewChatButton.js
+// // frontend/components/Chat/NewChatButton.js
 // import React, { useState } from 'react';
 // import { 
 //     Button, 
@@ -158,9 +28,9 @@
 //     const [users, setUsers] = useState([]);
 //     const [error, setError] = useState('');
 
-//     const handleSearch = async (value) => {
+//         const handleSearch = async (value) => {
 //         setSearchTerm(value);
-//         if (value.length < 2) {
+//         if (value.length < 0) {
 //             setUsers([]);
 //             return;
 //         }
@@ -184,6 +54,7 @@
 //             setLoading(false);
 //         }
 //     };
+    
 
 //     const startChat = async (selectedUser) => {
 //         try {
@@ -194,7 +65,13 @@
 //                     'Authorization': `Bearer ${localStorage.getItem('token')}`
 //                 }
 //             });
-//             const existingChats = await chatsResponse.json();
+            
+//             if (!chatsResponse.ok) {
+//                 throw new Error('Failed to fetch chats');
+//             }
+            
+//             const chatsData = await chatsResponse.json();
+//             const existingChats = chatsData.data || []; // Access the data property
             
 //             // Check if there's already a private chat with this user
 //             const existingChat = existingChats.find(chat => 
@@ -203,7 +80,6 @@
 //             );
 
 //             if (existingChat) {
-//                 // If chat exists, just open it
 //                 setActiveChat(existingChat);
 //                 setOpen(false);
 //                 return;
@@ -223,19 +99,23 @@
 //                 throw new Error('Failed to create chat');
 //             }
 
-//             const newChat = await response.json();
+//             const newChatData = await response.json();
             
+//             if (!newChatData.success) {
+//                 throw new Error(newChatData.error || 'Failed to create chat');
+//             }
+
 //             // Update the chat list
-//             await onChatCreated();
+//             if (onChatCreated) {
+//                 await onChatCreated();
+//             }
             
-//             // Set the new chat as active
-//             setActiveChat(newChat);
+//             setActiveChat(newChatData.data);
             
-//             // Close the dialog
 //             setOpen(false);
 //         } catch (error) {
 //             console.error('Error starting chat:', error);
-//             setError('Failed to start chat');
+//             setError(error.message || 'Failed to start chat');
 //         } finally {
 //             setLoading(false);
 //         }
@@ -249,10 +129,10 @@
 //                 startIcon={<AddIcon />}
 //                 onClick={() => setOpen(true)}
 //                 sx={{
-//                     m: 2,
-//                     backgroundColor: 'rgba(34, 34, 96, 0.8)',
+//                     mt:2,
+//                     backgroundColor: 'rgba(34, 34, 96, 1)',
 //                     '&:hover': {
-//                         backgroundColor: 'rgba(34, 34, 96, 1)'
+//                         backgroundColor: 'rgb(0, 148, 0)'
 //                     }
 //                 }}
 //             >
@@ -269,8 +149,14 @@
 //                 }}
 //                 fullWidth 
 //                 maxWidth="sm"
+//                 aria-labelledby="chat-dialog-title"
+//                 slotProps={{
+//                     backdrop: {
+//                         'aria-hidden': true
+//                     }
+//                 }}
 //             >
-//                 <DialogTitle>Start New Chat</DialogTitle>
+//                 <DialogTitle id="chat-dialog-title">Start New Chat</DialogTitle>
 //                 <DialogContent>
 //                     <TextField
 //                         autoFocus
@@ -285,11 +171,11 @@
                     
 //                     {loading && (
 //                         <Box sx={{ display: 'flex', justifyContent: 'center', mt: 2 }}>
-//                             <CircularProgress size={24} />
+//                             <CircularProgress />
 //                         </Box>
 //                     )}
 
-//                     {users.length === 0 && searchTerm.length >= 2 && !loading && (
+//                     {!loading && users.length === 0 && searchTerm.length >= 2 && (
 //                         <Box sx={{ textAlign: 'center', mt: 2 }}>
 //                             <Typography color="textSecondary">
 //                                 No users found
@@ -329,7 +215,6 @@
 //                             setUsers([]);
 //                             setError('');
 //                         }}
-//                         color="primary"
 //                     >
 //                         Cancel
 //                     </Button>
@@ -342,17 +227,26 @@
 //                 onClose={() => setError('')}
 //                 anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
 //             >
-//                 <Alert onClose={() => setError('')} severity="error" sx={{ width: '100%' }}>
+//                 <Alert 
+//                     onClose={() => setError('')} 
+//                     severity="error" 
+//                     sx={{ width: '100%' }}
+//                 >
 //                     {error}
 //                 </Alert>
 //             </Snackbar>
 //         </>
 //     );
 // };
+
 // export default NewChatButton;
 
 
-// frontend/components/Chat/NewChatButton.js
+
+
+
+
+
 import React, { useState } from 'react';
 import { 
     Button, 
@@ -370,20 +264,29 @@ import {
     Box,
     Typography,
     Snackbar,
-    Alert
+    Alert,
+    Tabs,
+    Tab,
+    Chip,
+    Stack
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
+import GroupAddIcon from '@mui/icons-material/GroupAdd';
+import PersonAddIcon from '@mui/icons-material/PersonAdd';
 
 const NewChatButton = ({ onChatCreated, setActiveChat }) => {
     const [open, setOpen] = useState(false);
+    const [tabValue, setTabValue] = useState(0);
     const [searchTerm, setSearchTerm] = useState('');
     const [loading, setLoading] = useState(false);
     const [users, setUsers] = useState([]);
     const [error, setError] = useState('');
+    const [groupName, setGroupName] = useState('');
+    const [selectedUsers, setSelectedUsers] = useState([]);
 
-        const handleSearch = async (value) => {
+    const handleSearch = async (value) => {
         setSearchTerm(value);
-        if (value.length < 0) {
+        if (value.length < 2) {
             setUsers([]);
             return;
         }
@@ -395,9 +298,7 @@ const NewChatButton = ({ onChatCreated, setActiveChat }) => {
                     'Authorization': `Bearer ${localStorage.getItem('token')}`
                 }
             });
-            if (!response.ok) {
-                throw new Error('Failed to search users');
-            }
+            if (!response.ok) throw new Error('Failed to search users');
             const data = await response.json();
             setUsers(data);
         } catch (error) {
@@ -407,26 +308,21 @@ const NewChatButton = ({ onChatCreated, setActiveChat }) => {
             setLoading(false);
         }
     };
-    
 
-    const startChat = async (selectedUser) => {
+    const startPrivateChat = async (selectedUser) => {
         try {
             setLoading(true);
-            // First check if a chat already exists with this user
             const chatsResponse = await fetch('http://localhost:5001/api/v1/chat/user-chats', {
                 headers: {
                     'Authorization': `Bearer ${localStorage.getItem('token')}`
                 }
             });
             
-            if (!chatsResponse.ok) {
-                throw new Error('Failed to fetch chats');
-            }
+            if (!chatsResponse.ok) throw new Error('Failed to fetch chats');
             
             const chatsData = await chatsResponse.json();
-            const existingChats = chatsData.data || []; // Access the data property
+            const existingChats = chatsData.data || [];
             
-            // Check if there's already a private chat with this user
             const existingChat = existingChats.find(chat => 
                 chat.type === 'private' && 
                 chat.participants.some(p => p._id === selectedUser._id)
@@ -434,11 +330,10 @@ const NewChatButton = ({ onChatCreated, setActiveChat }) => {
 
             if (existingChat) {
                 setActiveChat(existingChat);
-                setOpen(false);
+                handleClose();
                 return;
             }
 
-            // If no existing chat, create new one
             const response = await fetch('http://localhost:5001/api/v1/chat/private', {
                 method: 'POST',
                 headers: {
@@ -448,30 +343,74 @@ const NewChatButton = ({ onChatCreated, setActiveChat }) => {
                 body: JSON.stringify({ participantId: selectedUser._id })
             });
 
-            if (!response.ok) {
-                throw new Error('Failed to create chat');
-            }
+            if (!response.ok) throw new Error('Failed to create chat');
 
             const newChatData = await response.json();
-            
-            if (!newChatData.success) {
-                throw new Error(newChatData.error || 'Failed to create chat');
-            }
+            if (!newChatData.success) throw new Error(newChatData.error);
 
-            // Update the chat list
-            if (onChatCreated) {
-                await onChatCreated();
-            }
-            
+            if (onChatCreated) await onChatCreated();
             setActiveChat(newChatData.data);
-            
-            setOpen(false);
+            handleClose();
         } catch (error) {
-            console.error('Error starting chat:', error);
             setError(error.message || 'Failed to start chat');
         } finally {
             setLoading(false);
         }
+    };
+
+    const createGroupChat = async () => {
+        if (!groupName || selectedUsers.length < 2) {
+            setError('Group name and at least 2 members are required');
+            return;
+        }
+
+        try {
+            setLoading(true);
+            const response = await fetch('http://localhost:5001/api/v1/chat/group', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${localStorage.getItem('token')}`
+                },
+                body: JSON.stringify({
+                    name: groupName,
+                    participantIds: selectedUsers.map(user => user._id)
+                })
+            });
+
+            if (!response.ok) throw new Error('Failed to create group');
+
+            const newGroupData = await response.json();
+            if (!newGroupData.success) throw new Error(newGroupData.error);
+
+            if (onChatCreated) await onChatCreated();
+            setActiveChat(newGroupData.data);
+            handleClose();
+        } catch (error) {
+            setError(error.message || 'Failed to create group');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleClose = () => {
+        setOpen(false);
+        setSearchTerm('');
+        setUsers([]);
+        setError('');
+        setGroupName('');
+        setSelectedUsers([]);
+        setTabValue(0);
+    };
+
+    const toggleUserSelection = (user) => {
+        setSelectedUsers(prev => {
+            const isSelected = prev.some(u => u._id === user._id);
+            if (isSelected) {
+                return prev.filter(u => u._id !== user._id);
+            }
+            return [...prev, user];
+        });
     };
 
     return (
@@ -482,7 +421,7 @@ const NewChatButton = ({ onChatCreated, setActiveChat }) => {
                 startIcon={<AddIcon />}
                 onClick={() => setOpen(true)}
                 sx={{
-                    mt:2,
+                    mt: 2,
                     backgroundColor: 'rgba(34, 34, 96, 1)',
                     '&:hover': {
                         backgroundColor: 'rgb(0, 148, 0)'
@@ -494,23 +433,30 @@ const NewChatButton = ({ onChatCreated, setActiveChat }) => {
 
             <Dialog 
                 open={open} 
-                onClose={() => {
-                    setOpen(false);
-                    setSearchTerm('');
-                    setUsers([]);
-                    setError('');
-                }}
+                onClose={handleClose}
                 fullWidth 
                 maxWidth="sm"
-                aria-labelledby="chat-dialog-title"
-                slotProps={{
-                    backdrop: {
-                        'aria-hidden': true
-                    }
-                }}
             >
-                <DialogTitle id="chat-dialog-title">Start New Chat</DialogTitle>
+                <DialogTitle>
+                    <Tabs value={tabValue} onChange={(e, v) => setTabValue(v)} centered>
+                        <Tab icon={<PersonAddIcon />} label="Private Chat" />
+                        <Tab icon={<GroupAddIcon />} label="Group Chat" />
+                    </Tabs>
+                </DialogTitle>
+
                 <DialogContent>
+                    {tabValue === 1 && (
+                        <TextField
+                            margin="dense"
+                            label="Group Name"
+                            fullWidth
+                            value={groupName}
+                            onChange={(e) => setGroupName(e.target.value)}
+                            variant="outlined"
+                            sx={{ mb: 2 }}
+                        />
+                    )}
+
                     <TextField
                         autoFocus
                         margin="dense"
@@ -521,6 +467,19 @@ const NewChatButton = ({ onChatCreated, setActiveChat }) => {
                         variant="outlined"
                         disabled={loading}
                     />
+
+                    {tabValue === 1 && selectedUsers.length > 0 && (
+                        <Stack direction="row" spacing={1} sx={{ mt: 2, flexWrap: 'wrap', gap: 1 }}>
+                            {selectedUsers.map((user) => (
+                                <Chip
+                                    key={user._id}
+                                    label={user.name}
+                                    onDelete={() => toggleUserSelection(user)}
+                                    color="primary"
+                                />
+                            ))}
+                        </Stack>
+                    )}
                     
                     {loading && (
                         <Box sx={{ display: 'flex', justifyContent: 'center', mt: 2 }}>
@@ -541,8 +500,12 @@ const NewChatButton = ({ onChatCreated, setActiveChat }) => {
                             <ListItem 
                                 button 
                                 key={user._id}
-                                onClick={() => startChat(user)}
+                                onClick={() => tabValue === 0 ? 
+                                    startPrivateChat(user) : 
+                                    toggleUserSelection(user)}
                                 disabled={loading}
+                                selected={tabValue === 1 && 
+                                    selectedUsers.some(u => u._id === user._id)}
                             >
                                 <ListItemAvatar>
                                     <Avatar sx={{ bgcolor: 'rgba(34, 34, 96, 0.8)' }}>
@@ -560,17 +523,17 @@ const NewChatButton = ({ onChatCreated, setActiveChat }) => {
                         ))}
                     </List>
                 </DialogContent>
+
                 <DialogActions>
-                    <Button 
-                        onClick={() => {
-                            setOpen(false);
-                            setSearchTerm('');
-                            setUsers([]);
-                            setError('');
-                        }}
-                    >
-                        Cancel
-                    </Button>
+                    <Button onClick={handleClose}>Cancel</Button>
+                    {tabValue === 1 && (
+                        <Button 
+                            onClick={createGroupChat}
+                            disabled={loading || !groupName || selectedUsers.length < 2}
+                        >
+                            Create Group
+                        </Button>
+                    )}
                 </DialogActions>
             </Dialog>
 

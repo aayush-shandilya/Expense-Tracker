@@ -170,6 +170,15 @@ const MessageContainer = styled(Box)(({ theme }) => ({
     gap: theme.spacing(1)
 }));
 
+// const MessageBubble = styled(Box)(({ theme, isOwn }) => ({
+//     maxWidth: '70%',
+//     padding: theme.spacing(1, 2),
+//     borderRadius: theme.spacing(2),
+//     backgroundColor: isOwn ? 'rgba(34, 34, 96, 0.8)' : 'rgba(34, 34, 96, 0.1)',
+//     color: isOwn ? '#fff' : 'inherit',
+//     alignSelf: isOwn ? 'flex-end' : 'flex-start',
+// }));
+
 const MessageBubble = styled(Box)(({ theme, isOwn }) => ({
     maxWidth: '70%',
     padding: theme.spacing(1, 2),
@@ -177,6 +186,9 @@ const MessageBubble = styled(Box)(({ theme, isOwn }) => ({
     backgroundColor: isOwn ? 'rgba(34, 34, 96, 0.8)' : 'rgba(34, 34, 96, 0.1)',
     color: isOwn ? '#fff' : 'inherit',
     alignSelf: isOwn ? 'flex-end' : 'flex-start',
+    '& .MuiTypography-caption': {
+        color: isOwn ? 'rgba(255, 255, 255, 0.7)' : 'rgba(0, 0, 0, 0.6)'
+    }
 }));
 
 const ChatWindow = ({ chatRoom, socket, currentUser }) => {
@@ -186,27 +198,114 @@ const ChatWindow = ({ chatRoom, socket, currentUser }) => {
     const messagesEndRef = useRef(null);
     const [sending, setSending] = useState(false);
 
+    // useEffect(() => {
+    //     if (chatRoom?._id) {
+    //         fetchMessages();
+    //         socket?.emit('join_room', chatRoom._id);
+    //     }
+
+    //     return () => {
+    //         if (chatRoom?._id) {
+    //             socket?.emit('leave_room', chatRoom._id);
+    //         }
+    //     };
+    // }, [chatRoom?._id]);
+
     useEffect(() => {
         if (chatRoom?._id) {
+            setMessages([]); // Clear existing messages when changing chats
             fetchMessages();
             socket?.emit('join_room', chatRoom._id);
         }
-
+    
         return () => {
             if (chatRoom?._id) {
                 socket?.emit('leave_room', chatRoom._id);
             }
         };
-    }, [chatRoom?._id]);
+    }, [chatRoom?._id,socket]); // Add chatRoom._id to dependency array
 
+
+    // useEffect(() => {
+    //     if (socket) {
+    //         socket.on('receive_message', (message) => {
+    //             setMessages(prev => [...prev, message]);
+    //             scrollToBottom();
+    //         });
+    //     }
+    // }, [socket]);
+
+    // useEffect(() => {
+    //     if (!socket) {
+    //         // Define the message handler
+    //         const handleMessage = (message) => {
+    //             console.log('Received message:', message); // Debug log
+    //             setMessages(prev => [...prev, message]);
+    //             scrollToBottom();
+    //         };
+    
+    //         // Add the event listener
+    //         socket.on('receive_message', handleMessage);
+    
+    //         // Clean up function to remove the listener when component unmounts
+    //         // or when socket changes
+    //         return () => {
+    //             socket.off('receive_message', handleMessage);
+    //         };
+    //     }
+    // }, [socket]);
+
+
+
+    // Socket event handler useEffect
     useEffect(() => {
-        if (socket) {
-            socket.on('receive_message', (message) => {
-                setMessages(prev => [...prev, message]);
-                scrollToBottom();
+        if (!socket) return;
+
+        const handleNewMessage = (message) => {
+            console.log('Received new message:', message);
+            setMessages(prev => {
+                // Check if message already exists to prevent duplicates
+                const messageExists = prev.some(m => m._id === message._id);
+                if (messageExists) {
+                    return prev;
+                }
+                return [...prev, message];
             });
-        }
+            scrollToBottom();
+        };
+
+        socket.on('receive_message', handleNewMessage);
+
+        return () => {
+            socket.off('receive_message', handleNewMessage);
+        };
     }, [socket]);
+
+
+    // const fetchMessages = async () => {
+    //     try {
+    //         const response = await fetch(
+    //             `http://localhost:5001/api/v1/chat/messages/${chatRoom._id}`,
+    //             {
+    //                 headers: {
+    //                     'Authorization': `Bearer ${localStorage.getItem('token')}`
+    //                 }
+    //             }
+    //         );
+    //         if (!response.ok) throw new Error('Failed to fetch messages');
+    //         const data = await response.json();
+    //         //setMessages(data);
+
+
+    //         setMessages(data.data || []); // Access the data property and provide fallback
+    //         scrollToBottom();
+    //     } catch (error) {
+    //         console.error('Error fetching messages:', error);
+    //         setMessages([]);
+    //     } finally {
+    //         setLoading(false);
+    //     }
+    // };
 
     const fetchMessages = async () => {
         try {
@@ -220,11 +319,16 @@ const ChatWindow = ({ chatRoom, socket, currentUser }) => {
             );
             if (!response.ok) throw new Error('Failed to fetch messages');
             const data = await response.json();
-            //setMessages(data);
-
-
-            setMessages(data.data || []); // Access the data property and provide fallback
-            scrollToBottom();
+            console.log('Fetched messages:', data); // Debug log
+            //setMessages(data);  // This was wrong
+    
+            if (data.success && Array.isArray(data.data)) {
+                setMessages(data.data);
+                scrollToBottom();
+            } else {
+                console.error('Invalid message data format:', data);
+                setMessages([]);
+            }
         } catch (error) {
             console.error('Error fetching messages:', error);
             setMessages([]);
@@ -232,29 +336,127 @@ const ChatWindow = ({ chatRoom, socket, currentUser }) => {
             setLoading(false);
         }
     };
+    //         setMessages(data.data || []); // This is correct but needs to be updated
+    //         scrollToBottom();
+    //     } catch (error) {
+    //         console.error('Error fetching messages:', error);
+    //         setMessages([]);
+    //     } finally {
+    //         setLoading(false);
+    //     }
+    // };
+
+    // const sendMessage = async (e) => {
+    //     e.preventDefault();
+    //     if (!newMessage.trim() || sending) return;
+
+    //     try {
+    //         setSending(true);
+    //         const messageData = {
+    //             chatRoomId: chatRoom._id,
+    //             content: newMessage.trim(),
+    //             senderId: currentUser._id
+    //         };
+
+    //         socket?.emit('send_message', messageData);
+    //         setNewMessage('');
+    //         scrollToBottom();
+    //     } catch (error) {
+    //         console.error('Error sending message:', error);
+    //     } finally {
+    //         setSending(false);
+    //     }
+    // };
+
+    // const sendMessage = async (e) => {
+    //     e.preventDefault();
+    //     if (!newMessage.trim() || sending) return;
+
+    //     try {
+    //         setSending(true);
+    //         const messageData = {
+    //             chatRoomId: chatRoom._id,
+    //             content: newMessage.trim(),
+    //             senderId: currentUser._id
+    //         };
+
+    //         // First, save the message to the backend
+    //         const response = await fetch('http://localhost:5001/api/v1/chat/send-message', {
+    //             method: 'POST',
+    //             headers: {
+    //                 'Content-Type': 'application/json',
+    //                 'Authorization': `Bearer ${localStorage.getItem('token')}`
+    //             },
+    //             body: JSON.stringify(messageData)
+    //         });
+
+    //         if (!response.ok) {
+    //             throw new Error('Failed to send message');
+    //         }
+
+    //         const savedMessage = await response.json();
+            
+    //         if (savedMessage.success) {
+    //             // Emit the saved message through socket
+    //             socket?.emit('send_message', savedMessage.data);
+    //             setNewMessage('');
+    //             scrollToBottom();
+    //         }
+    //     } catch (error) {
+    //         console.error('Error sending message:', error);
+    //     } finally {
+    //         setSending(false);
+    //     }
+    // };
 
     const sendMessage = async (e) => {
         e.preventDefault();
         if (!newMessage.trim() || sending) return;
-
+    
         try {
             setSending(true);
             const messageData = {
                 chatRoomId: chatRoom._id,
-                content: newMessage.trim(),
-                senderId: currentUser._id
+                content: newMessage.trim()
+                // Remove senderId as it will be taken from token
             };
-
-            socket?.emit('send_message', messageData);
-            setNewMessage('');
-            scrollToBottom();
+    
+            // First, save the message to the backend
+            const response = await fetch('http://localhost:5001/api/v1/chat/messages', {  // Changed endpoint
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${localStorage.getItem('token')}`
+                },
+                body: JSON.stringify(messageData)
+            });
+    
+            const data = await response.json();
+            
+            if (!response.ok) {
+                throw new Error(data.error || 'Failed to send message');
+            }
+    
+            if (data.success) {
+                // Emit the saved message through socket
+                const messageToEmit = {
+                    ...data.data,
+                    chatRoomId: chatRoom._id
+                };
+                socket?.emit('send_message', {
+                    ...data.data,
+                    chatRoomId: chatRoom._id
+                });
+                setNewMessage('');
+                setMessages(prev => [...prev, data.data]);
+                scrollToBottom();
+            }
         } catch (error) {
             console.error('Error sending message:', error);
         } finally {
             setSending(false);
         }
     };
-
     const scrollToBottom = () => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     };
@@ -328,7 +530,7 @@ const ChatWindow = ({ chatRoom, socket, currentUser }) => {
                 <div ref={messagesEndRef} />
             </MessageContainer> */}
 
-            <MessageContainer>
+            {/* <MessageContainer>
                 {Array.isArray(messages) && messages.map((message, index) => (
                     <MessageBubble
                         key={message._id || index}
@@ -349,6 +551,65 @@ const ChatWindow = ({ chatRoom, socket, currentUser }) => {
                         </Typography>
                     </MessageBubble>
                 ))}
+                <div ref={messagesEndRef} />
+            </MessageContainer> */}
+
+{/* <MessageContainer>
+                {Array.isArray(messages) && messages.map((message, index) => {
+                    // Explicitly check if the message sender ID matches the current user ID
+                    const isOwnMessage = message.sender._id === currentUser._id || message.sender === currentUser._id;
+                    
+                    return (
+                        <MessageBubble
+                            key={message._id || index}
+                            isOwn={isOwnMessage}
+                        >
+                            <Typography variant="body1">
+                                {message.content}
+                            </Typography>
+                            <Typography 
+                                variant="caption" 
+                                sx={{ 
+                                    display: 'block',
+                                    textAlign: isOwnMessage ? 'right' : 'left',
+                                    mt: 0.5
+                                }}
+                            >
+                                {new Date(message.timestamp).toLocaleTimeString()}
+                            </Typography>
+                        </MessageBubble>
+                    );
+                })}
+                <div ref={messagesEndRef} />
+            </MessageContainer> */}
+
+            <MessageContainer>
+                {Array.isArray(messages) && messages.map((message, index) => {
+                    // Handle both cases where sender might be an ID string or an object
+                    const senderId = typeof message.sender === 'object' ? message.sender._id : message.sender;
+                    const isOwnMessage = senderId === currentUser._id;
+                    
+                    return (
+                        <MessageBubble
+                            key={message._id || index}
+                            isOwn={isOwnMessage}
+                        >
+                            <Typography variant="body1">
+                                {message.content}
+                            </Typography>
+                            <Typography 
+                                variant="caption" 
+                                sx={{ 
+                                    display: 'block',
+                                    textAlign: isOwnMessage ? 'right' : 'left',
+                                    mt: 0.5
+                                }}
+                            >
+                                {new Date(message.timestamp).toLocaleTimeString()}
+                            </Typography>
+                        </MessageBubble>
+                    );
+                })}
                 <div ref={messagesEndRef} />
             </MessageContainer>
 

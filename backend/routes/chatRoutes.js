@@ -29,6 +29,8 @@ router.use(protect);
 router.post('/private', chatController.createPrivateChat);
 router.get('/user-chats', chatController.getUserChats);
 router.get('/messages/:chatId', chatController.getChatMessages);
-router.post('/message', chatController.sendMessage);
+router.post('/messages', chatController.sendMessage);
+// routes/chatRoutes.js
+router.post('/send-message', chatController.sendMessage);
 
 module.exports = router;

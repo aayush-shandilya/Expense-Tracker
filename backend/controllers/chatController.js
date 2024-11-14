@@ -208,6 +208,7 @@ const chatController = {
     //     }
     // },
 
+    //backend/controller/chatController.js 
     getUserChats: async (req, res) => {
         try {
             const userId = req.user.id;
@@ -289,6 +290,42 @@ const chatController = {
     },
 
     // Get chat messages
+    // getChatMessages: async (req, res) => {
+    //     try {
+    //         const { chatId } = req.params;
+    //         const userId = req.user.id;
+
+    //         // Verify user is participant
+    //         const chat = await ChatRoom.findOne({
+    //             _id: chatId,
+    //             participants: userId
+    //         });
+
+    //         if (!chat) {
+    //             return res.status(404).json({
+    //                 success: false,
+    //                 error: 'Chat not found or unauthorized'
+    //             });
+    //         }
+
+    //         const messages = await Message.find({ chatRoom: chatId })
+    //             .populate('sender', 'name email')
+    //             .sort({ createdAt: 1 });
+
+    //         res.status(200).json({
+    //             success: true,
+    //             data: messages
+    //         });
+    //     } catch (error) {
+    //         console.error('Get chat messages error:', error);
+    //         res.status(500).json({
+    //             success: false,
+    //             error: 'Error fetching messages'
+    //         });
+    //     }
+    // },
+
+    // In backend/controller/chatController.js
     getChatMessages: async (req, res) => {
         try {
             const { chatId } = req.params;
@@ -309,7 +346,8 @@ const chatController = {
 
             const messages = await Message.find({ chatRoom: chatId })
                 .populate('sender', 'name email')
-                .sort({ createdAt: 1 });
+                .sort({ createdAt: 1 })  // Ensure messages are in chronological order
+                .limit(100);  // Optional: limit the number of messages loaded
 
             res.status(200).json({
                 success: true,
@@ -324,54 +362,151 @@ const chatController = {
         }
     },
 
-    // Send message
-    sendMessage: async (req, res) => {
-        try {
-            const { chatRoomId, content } = req.body;
-            const userId = req.user.id;
+    // // Send message
+    // sendMessage: async (req, res) => {
+    //     try {
+    //         const { chatRoomId, content } = req.body;
+    //         const userId = req.user.id;
 
-            // Verify chat room and user participation
-            const chatRoom = await ChatRoom.findOne({
-                _id: chatRoomId,
-                participants: userId
-            });
+    //         // Verify chat room and user participation
+    //         const chatRoom = await ChatRoom.findOne({
+    //             _id: chatRoomId,
+    //             participants: userId
+    //         });
 
-            if (!chatRoom) {
-                return res.status(404).json({
-                    success: false,
-                    error: 'Chat room not found or unauthorized'
-                });
-            }
+    //         if (!chatRoom) {
+    //             return res.status(404).json({
+    //                 success: false,
+    //                 error: 'Chat room not found or unauthorized'
+    //             });
+    //         }
 
-            // Create message
-            const message = await Message.create({
-                chatRoom: chatRoomId,
-                sender: userId,
-                content,
-                readBy: [{ user: userId }]
-            });
+    //         // Create message
+    //         const message = await Message.create({
+    //             chatRoom: chatRoomId,
+    //             sender: userId,
+    //             content,
+    //             readBy: [{ user: userId }]
+    //         });
 
-            // Update chat room's last message
-            await ChatRoom.findByIdAndUpdate(chatRoomId, {
-                lastMessage: content,
-                lastMessageTime: new Date()
-            });
+    //         // Update chat room's last message
+    //         await ChatRoom.findByIdAndUpdate(chatRoomId, {
+    //             lastMessage: content,
+    //             lastMessageTime: new Date()
+    //         });
 
-            const populatedMessage = await Message.findById(message._id)
-                .populate('sender', 'name email');
+    //         const populatedMessage = await Message.findById(message._id)
+    //             .populate('sender', 'name email');
 
-            res.status(201).json({
-                success: true,
-                data: populatedMessage
-            });
-        } catch (error) {
-            console.error('Send message error:', error);
-            res.status(500).json({
+    //         res.status(201).json({
+    //             success: true,
+    //             data: populatedMessage
+    //         });
+    //     } catch (error) {
+    //         console.error('Send message error:', error);
+    //         res.status(500).json({
+    //             success: false,
+    //             error: 'Error sending message'
+    //         });
+    //     }
+    // }
+
+    // In backend/controller/chatController.js
+//     sendMessage: async (req, res) => {
+//         try {
+//             const { chatRoomId, content } = req.body;
+//             const userId = req.user.id;
+
+//             // Create message with timestamp
+//             const message = await Message.create({
+//                 chatRoom: chatRoomId,
+//                 sender: userId,
+//                 content,
+//                 timestamp: new Date(), // Add timestamp
+//                 readBy: [{ user: userId }]
+//             });
+
+//             // Update chat room's last message
+//             await ChatRoom.findByIdAndUpdate(chatRoomId, {
+//                 lastMessage: message, // Store the entire message object
+//                 lastMessageTime: new Date()
+//             });
+
+//             const populatedMessage = await Message.findById(message._id)
+//                 .populate('sender', 'name email');
+
+//             res.status(201).json({
+//                 success: true,
+//                 data: populatedMessage
+//             });
+//         } catch (error) {
+//             console.error('Send message error:', error);
+//             res.status(500).json({
+//                 success: false,
+//                 error: 'Error sending message'
+//             });
+//         }
+//     }
+// };
+
+sendMessage: async (req, res) => {
+    try {
+        const { chatRoomId, content } = req.body;
+        const userId = req.user.id; // Get from auth middleware
+
+        // Validate input
+        if (!chatRoomId || !content) {
+            return res.status(400).json({
                 success: false,
-                error: 'Error sending message'
+                error: 'ChatRoomId and content are required'
             });
         }
+
+        // Verify chat room exists and user is participant
+        const chatRoom = await ChatRoom.findOne({
+            _id: chatRoomId,
+            participants: userId
+        });
+
+        if (!chatRoom) {
+            return res.status(404).json({
+                success: false,
+                error: 'Chat room not found or unauthorized'
+            });
+        }
+
+        // Create message
+        const newMessage = new Message({
+            chatRoom: chatRoomId,
+            sender: userId,
+            content: content,
+            readBy: [{ user: userId }]
+        });
+
+        await newMessage.save();
+
+        // Populate sender details
+        const populatedMessage = await Message.findById(newMessage._id)
+            .populate('sender', 'name email');
+
+        // Update chat room's last message
+        await ChatRoom.findByIdAndUpdate(chatRoomId, {
+            lastMessage: content,
+            lastMessageTime: new Date()
+        });
+
+        res.status(201).json({
+            success: true,
+            data: populatedMessage
+        });
+    } catch (error) {
+        console.error('Send message error:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Error sending message: ' + error.message
+        });
     }
+}
 };
 
 module.exports = chatController;

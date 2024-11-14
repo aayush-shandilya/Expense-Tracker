@@ -381,33 +381,6 @@ const NewChatButton = ({ onChatCreated, setActiveChat }) => {
     const [users, setUsers] = useState([]);
     const [error, setError] = useState('');
 
-    // const handleSearch = async (value) => {
-    //     setSearchTerm(value);
-    //     if (value.length < 2) {
-    //         setUsers([]);
-    //         return;
-    //     }
-
-    //     setLoading(true);
-    //     try {
-    //         const response = await fetch(`http://localhost:5001/api/v1/auth/search?term=${value}`, {
-    //             headers: {
-    //                 'Authorization': `Bearer ${localStorage.getItem('token')}`
-    //             }
-    //         });
-    //         if (!response.ok) {
-    //             throw new Error('Failed to search users');
-    //         }
-    //         const data = await response.json();
-    //         setUsers(data.data || []); // Access the data property
-    //     } catch (error) {
-    //         console.error('Error searching users:', error);
-    //         setError('Failed to search users');
-    //     } finally {
-    //         setLoading(false);
-    //     }
-    // };
-
         const handleSearch = async (value) => {
         setSearchTerm(value);
         if (value.length < 0) {
@@ -490,10 +463,8 @@ const NewChatButton = ({ onChatCreated, setActiveChat }) => {
                 await onChatCreated();
             }
             
-            // Set the new chat as active
             setActiveChat(newChatData.data);
             
-            // Close the dialog
             setOpen(false);
         } catch (error) {
             console.error('Error starting chat:', error);
@@ -532,7 +503,6 @@ const NewChatButton = ({ onChatCreated, setActiveChat }) => {
                 fullWidth 
                 maxWidth="sm"
                 aria-labelledby="chat-dialog-title"
-                // Remove aria-hidden from Dialog
                 slotProps={{
                     backdrop: {
                         'aria-hidden': true

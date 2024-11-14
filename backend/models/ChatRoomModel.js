@@ -1,36 +1,10 @@
-// const mongoose = require('mongoose');
-
-// const chatRoomSchema = new mongoose.Schema({
-//     name: {
-//         type: String,
-//         required: [true, "Room name is required"],
-//     },
-//     type: {
-//         type: String,
-//         enum: ['private', 'group'],
-//         required: true
-//     },
-//     participants: [{
-//         type: mongoose.Schema.Types.ObjectId,
-//         ref: 'User'
-//     }],
-//     admin: {
-//         type: mongoose.Schema.Types.ObjectId,
-//         ref: 'User',
-//         required: function() { return this.type === 'group'; }
-//     }
-// }, { timestamps: true });
-
-// module.exports = mongoose.model('ChatRoom', chatRoomSchema);
-
-// backend/models/ChatRoomModel.js
 const mongoose = require('mongoose');
 
 const chatRoomSchema = new mongoose.Schema({
     type: {
         type: String,
-        enum: ['private', 'group'],
-        required: true
+        required: true,
+        enum: ['private', 'group']
     },
     participants: [{
         type: mongoose.Schema.Types.ObjectId,
@@ -38,17 +12,19 @@ const chatRoomSchema = new mongoose.Schema({
     }],
     lastMessage: {
         type: String,
-        default: null
+        default: ''
     },
     lastMessageTime: {
         type: Date,
-        default: null
+        default: Date.now
     },
     createdBy: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'User',
         required: true
     }
-}, { timestamps: true });
+}, {
+    timestamps: true
+});
 
 module.exports = mongoose.model('ChatRoom', chatRoomSchema);

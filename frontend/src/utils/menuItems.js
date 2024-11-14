@@ -29,6 +29,6 @@ export const menuItems = [
         id:6,
         title: 'Chat',
         icon: chat,
-        link:"#"
+        link:"/chat"
     }
 ]

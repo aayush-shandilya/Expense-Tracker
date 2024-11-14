@@ -164,3 +164,18 @@ exports.validateToken = async (req, res) => {
         });
     }
 };
+
+
+// backend/controllers/auth.js
+exports.searchUsers = async (req, res) => {
+    try {
+        const { term } = req.query;
+        const users = await User.find({
+            name: { $regex: term, $options: 'i' },
+            _id: { $ne: req.user.id }
+        }).select('name email');
+        res.json(users);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+};

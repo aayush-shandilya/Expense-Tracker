@@ -1,0 +1,200 @@
+{
+    "info": {
+        "name": "Chat Application API Tests",
+        "description": "Test collection for chat application endpoints",
+        "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+    },
+    "item": [
+        {
+            "name": "Chat Rooms",
+            "item": [
+                {
+                    "name": "Create Private Chat",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{token}}",
+                                "type": "text"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"participantId\": \"{{participant_user_id}}\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/api/v1/chat/private",
+                            "host": ["{{base_url}}"],
+                            "path": ["api", "v1", "chat", "private"]
+                        }
+                    }
+                },
+                {
+                    "name": "Create Group Chat",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{token}}",
+                                "type": "text"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"name\": \"Test Group Chat\",\n    \"participants\": [\"{{participant_user_id_1}}\", \"{{participant_user_id_2}}\"]\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/api/v1/chat/group",
+                            "host": ["{{base_url}}"],
+                            "path": ["api", "v1", "chat", "group"]
+                        }
+                    }
+                },
+                {
+                    "name": "Get User Chats",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{token}}",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/v1/chat/user-chats",
+                            "host": ["{{base_url}}"],
+                            "path": ["api", "v1", "chat", "user-chats"]
+                        }
+                    }
+                }
+            ]
+        },
+        {
+            "name": "Messages",
+            "item": [
+                {
+                    "name": "Send Message",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{token}}",
+                                "type": "text"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"chatRoomId\": \"{{chat_room_id}}\",\n    \"content\": \"Hello, this is a test message!\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/api/v1/chat/message",
+                            "host": ["{{base_url}}"],
+                            "path": ["api", "v1", "chat", "message"]
+                        }
+                    }
+                },
+                {
+                    "name": "Get Chat Messages",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{token}}",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/v1/chat/messages/{{chat_room_id}}",
+                            "host": ["{{base_url}}"],
+                            "path": ["api", "v1", "chat", "messages", "{{chat_room_id}}"]
+                        }
+                    }
+                }
+            ]
+        },
+        {
+            "name": "Test WebSocket Connection",
+            "request": {
+                "method": "GET",
+                "header": [
+                    {
+                        "key": "Authorization",
+                        "value": "Bearer {{token}}",
+                        "type": "text"
+                    }
+                ],
+                "url": {
+                    "raw": "{{base_url}}/api/v1/chat/test-socket",
+                    "host": ["{{base_url}}"],
+                    "path": ["api", "v1", "chat", "test-socket"]
+                }
+            }
+        }
+    ],
+    "event": [
+        {
+            "listen": "prerequest",
+            "script": {
+                "type": "text/javascript",
+                "exec": [
+                    "// You can add pre-request scripts here"
+                ]
+            }
+        },
+        {
+            "listen": "test",
+            "script": {
+                "type": "text/javascript",
+                "exec": [
+                    "// Add test scripts here",
+                    "pm.test(\"Status code is 200\", function () {",
+                    "    pm.response.to.have.status(200);",
+                    "});",
+                    "",
+                    "pm.test(\"Response has required fields\", function () {",
+                    "    const jsonData = pm.response.json();",
+                    "    pm.expect(jsonData.success).to.exist;",
+                    "});"
+                ]
+            }
+        }
+    ],
+    "variable": [
+        {
+            "key": "base_url",
+            "value": "http://localhost:5001"
+        },
+        {
+            "key": "token",
+            "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY3MWYyMDIxZDFiZTBkYzFlMDZkYjE4MiIsImlhdCI6MTczMTQ5Nzg4NywiZXhwIjoxNzM0MDg5ODg3fQ.voZL1jlmvvO6tn9tddHZppW1IwnDkyiQQkXMshxB1sE"
+        },
+        {
+            "key": "participant_user_id",
+            "value": "user_id_here"
+        },
+        {
+            "key": "chat_room_id",
+            "value": "chat_room_id_here"
+        }
+    ]
+}

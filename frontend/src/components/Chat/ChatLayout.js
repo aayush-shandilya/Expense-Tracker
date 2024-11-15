@@ -1,8 +1,4 @@
-
 //ChatLayout.js
-
-
-
 import React, { useState, useEffect } from 'react';
 import { Box, Typography, CircularProgress, styled } from '@mui/material';
 import io from 'socket.io-client';
@@ -65,6 +61,7 @@ const ChatLayout = () => {
         return () => newSocket.close();
     }, []);
 
+
     const fetchChats = async () => {
         try {
             const response = await fetch('http://localhost:5001/api/v1/chat/user-chats', {
@@ -83,11 +80,29 @@ const ChatLayout = () => {
         }
     };
 
-    // Function to handle when a new chat is created
+    const handleChatRoomUpdate = (updatedChat) => {
+        // Update the active chat with the new data
+        setActiveChat(prev => {
+            if (prev?._id === updatedChat._id) {
+                return updatedChat;
+            }
+            return prev;
+        });
+        
+        // Update the chat in the chats list
+        setChats(prevChats => 
+            prevChats.map(chat => 
+                chat._id === updatedChat._id ? updatedChat : chat
+            )
+        );
+    };
+
     const handleNewChat = (newChat) => {
         setChats(prevChats => [...prevChats, newChat]);
         setActiveChat(newChat);
     };
+
+    
 
     if (loading) {
         return (
@@ -100,40 +115,41 @@ const ChatLayout = () => {
         );
     }
 
-    return (
-        <ChatContainer>
-            <ChatSidebar>
-                <NewChatButton 
-                    onChatCreated={handleNewChat}
-                    setActiveChat={setActiveChat}
+return (
+    <ChatContainer>
+        <ChatSidebar>
+            <NewChatButton 
+                onChatCreated={handleNewChat}
+                setActiveChat={setActiveChat}
+            />
+            <ChatList
+                chats={chats}
+                onChatSelect={setActiveChat}
+                activeChat={activeChat}
+                currentUser={user}
+            />
+        </ChatSidebar>
+        <ChatMain>
+            {activeChat ? (
+                <ChatWindow 
+                    chatRoom={activeChat}
+                    socket={socket}
+                    currentUser={user}  
+                    onChatRoomUpdate={handleChatRoomUpdate}
                 />
-                <ChatList
-                    chats={chats}
-                    onChatSelect={setActiveChat}
-                    activeChat={activeChat}
-                    currentUser={user}
-                />
-            </ChatSidebar>
-            <ChatMain>
-                {activeChat ? (
-                    <ChatWindow 
-                        chatRoom={activeChat} 
-                        socket={socket}
-                        currentUser={user}
-                    />
-                ) : (
-                    <EmptyStateContainer>
-                        <Typography variant="h6" sx={{ color: 'rgba(34, 34, 96, 0.8)', mb: 1 }}>
-                            Welcome to Chat
-                        </Typography>
-                        <Typography variant="body1">
-                            Select a chat or start a new conversation
-                        </Typography>
-                    </EmptyStateContainer>
-                )}
-            </ChatMain>
-        </ChatContainer>
-    );
+            ) : (
+                <EmptyStateContainer>
+                    <Typography variant="h6" sx={{ color: 'rgba(34, 34, 96, 0.8)', mb: 1 }}>
+                        Welcome to Chat
+                    </Typography>
+                    <Typography variant="body1">
+                        Select a chat or start a new conversation
+                    </Typography>
+                </EmptyStateContainer>
+            )}
+        </ChatMain>
+    </ChatContainer>
+);
 };
 
 export default ChatLayout;

@@ -1,3 +1,4 @@
+//controllers/chatController.js
 const ChatRoom = require('../models/ChatRoomModel');
 const Message = require('../models/MessageModel');
 const User = require('../models/UserModel');
@@ -82,24 +83,28 @@ const chatController = {
         try {
             const { chatId } = req.params;
             const userId = req.user.id;
-
+    
+            console.log('Getting messages for chat:', chatId, 'user:', userId);
+    
             const chat = await ChatRoom.findOne({
                 _id: chatId,
                 participants: userId
             });
-
+    
             if (!chat) {
+                console.log('Chat not found or unauthorized');
                 return res.status(404).json({
                     success: false,
                     error: 'Chat not found or unauthorized'
                 });
             }
-
+    
             const messages = await Message.find({ chatRoom: chatId })
                 .populate('sender', 'name email')
-                .sort({ createdAt: 1 }) 
-                .limit(100);
-
+                .sort({ createdAt: 1 });
+    
+            console.log('Found messages:', messages.length);
+    
             res.status(200).json({
                 success: true,
                 data: messages
@@ -172,87 +177,7 @@ sendMessage: async (req, res) => {
         });
     }
     },
-
-//     createGroupChat : async (req, res) => {
-//     try {
-//         const { name, participantIds } = req.body;
-//         const userId = req.user.id;
-
-//         if (!name || !participantIds || !Array.isArray(participantIds)) {
-//             return res.status(400).json({
-//                 success: false,
-//                 error: 'Name and participant list required'
-//             });
-//         }
-
-//         // Add creator to participants and admins
-//         const uniqueParticipants = [...new Set([...participantIds, userId])];
-        
-//         const newGroup = await ChatRoom.create({
-//             type: 'group',
-//             name,
-//             participants: uniqueParticipants,
-//             admins: [userId],
-//             createdBy: userId
-//         });
-
-//         const populatedGroup = await ChatRoom.findById(newGroup._id)
-//             .populate('participants', 'name email')
-//             .populate('admins', 'name email');
-
-//         res.status(201).json({
-//             success: true,
-//             data: populatedGroup
-//         });
-//     } catch (error) {
-//         console.error('Create group chat error:', error);
-//         res.status(500).json({
-//             success: false,
-//             error: 'Error creating group chat'
-//         });
-//     }
-// },
-
-// addGroupParticipants : async (req, res) => {
-//     try {
-//         const { chatId, participantIds } = req.body;
-//         const userId = req.user.id;
-
-//         const chat = await ChatRoom.findOne({
-//             _id: chatId,
-//             type: 'group',
-//             admins: userId
-//         });
-
-//         if (!chat) {
-//             return res.status(404).json({
-//                 success: false,
-//                 error: 'Group not found or unauthorized'
-//             });
-//         }
-
-//         chat.participants = [...new Set([...chat.participants, ...participantIds])];
-//         await chat.save();
-
-//         const populatedChat = await ChatRoom.findById(chat._id)
-//             .populate('participants', 'name email')
-//             .populate('admins', 'name email');
-
-//         res.status(200).json({
-//             success: true,
-//             data: populatedChat
-//         });
-//     } catch (error) {
-//         console.error('Add participants error:', error);
-//         res.status(500).json({
-//             success: false,
-//             error: 'Error adding participants'
-//         });
-//     }
-// }
 };
-
-// module.exports = chatController;
 
 const createGroupChat = async (req, res) => {
     try {
@@ -303,11 +228,18 @@ const addGroupParticipants = async (req, res) => {
         const { participantIds } = req.body;
         const userId = req.user.id;
 
+        if (!participantIds || !Array.isArray(participantIds)) {
+            return res.status(400).json({
+                success: false,
+                error: 'Participant IDs are required and must be an array'
+            });
+        }
+
         const group = await ChatRoom.findOne({
             _id: groupId,
             type: 'group',
             admins: userId
-        });
+        }).populate('participants', 'name email');
 
         if (!group) {
             return res.status(404).json({
@@ -316,8 +248,27 @@ const addGroupParticipants = async (req, res) => {
             });
         }
 
+        // Verify all users exist before adding
+        const users = await User.find({ _id: { $in: participantIds } });
+        if (users.length !== participantIds.length) {
+            return res.status(400).json({
+                success: false,
+                error: 'One or more users not found'
+            });
+        }
+
         // Add new participants while avoiding duplicates
-        group.participants = [...new Set([...group.participants, ...participantIds])];
+        const existingIds = group.participants.map(p => p._id.toString());
+        const newParticipantIds = participantIds.filter(id => !existingIds.includes(id.toString()));
+        
+        if (newParticipantIds.length === 0) {
+            return res.status(400).json({
+                success: false,
+                error: 'All users are already members of the group'
+            });
+        }
+
+        group.participants = [...group.participants, ...newParticipantIds];
         await group.save();
 
         const updatedGroup = await ChatRoom.findById(groupId)
@@ -426,11 +377,83 @@ const updateGroupChat = async (req, res) => {
     }
 };
 
+const searchUsers = async (req, res) => {
+    try {
+        const { query } = req.query;
+        const userId = req.user.id;
+
+        if (!query) {
+            return res.status(400).json({
+                success: false,
+                error: 'Search query is required'
+            });
+        }
+
+        // Search for users that match the query in name or email
+        // Exclude the current user from results
+        const users = await User.find({
+            $and: [
+                {
+                    $or: [
+                        { name: { $regex: query, $options: 'i' } },
+                        { email: { $regex: query, $options: 'i' } }
+                    ]
+                },
+                { _id: { $ne: userId } } // Exclude current user
+            ]
+        }).select('name email _id');
+
+        res.status(200).json({
+            success: true,
+            data: users
+        });
+    } catch (error) {
+        console.error('Search users error:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Error searching users'
+        });
+    }
+};
+const getChatById = async (req, res) => {
+    try {
+        const { chatId } = req.params;
+        const userId = req.user.id;
+
+        const chat = await ChatRoom.findOne({
+            _id: chatId,
+            participants: userId
+        })
+        .populate('participants', 'name email')
+        .populate('admins', 'name email');
+
+        if (!chat) {
+            return res.status(404).json({
+                success: false,
+                error: 'Chat not found or unauthorized'
+            });
+        }
+
+        res.status(200).json({
+            success: true,
+            data: chat
+        });
+    } catch (error) {
+        console.error('Get chat by id error:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Error fetching chat'
+        });
+    }
+};
+
 // Add these methods to the exports
 module.exports = {
     ...chatController, // spread existing methods
     createGroupChat,
     addGroupParticipants,
     removeGroupParticipant,
-    updateGroupChat
+    updateGroupChat,
+    searchUsers,  // Add this
+    getChatById
 };

@@ -390,6 +390,22 @@ const getChatById = async (req, res) => {
     }
 };
 
+// // Configure multer for file upload
+// const storage = multer.diskStorage({
+//     destination: (req, file, cb) => {
+//         const uploadDir = 'uploads/';
+//         if (!fs.existsSync(uploadDir)) {
+//             fs.mkdirSync(uploadDir, { recursive: true });
+//         }
+//         cb(null, uploadDir);
+//     },
+//     filename: (req, file, cb) => {
+//         const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+//         cb(null, uniqueSuffix + path.extname(file.originalname));
+//     }
+// });
+
+
 // Configure multer for file upload
 const storage = multer.diskStorage({
     destination: (req, file, cb) => {
@@ -406,15 +422,35 @@ const storage = multer.diskStorage({
 });
 
 const fileFilter = (req, file, cb) => {
-    const allowedTypes = ['application/pdf', 'application/msword', 
-        'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
+    const allowedTypes = [
+        // Document types
+        'application/pdf', 
+        'application/msword',
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        // Image types
+        'image/jpeg',
+        'image/png',
+        'image/gif',
+        'image/webp'
+    ];
     
     if (allowedTypes.includes(file.mimetype)) {
         cb(null, true);
     } else {
-        cb(new Error('Invalid file type. Only PDF and DOC files are allowed.'), false);
+        cb(new Error('Invalid file type. Only PDF, DOC, and image files (JPEG, PNG, GIF, WEBP) are allowed.'), false);
     }
 };
+
+// const fileFilter = (req, file, cb) => {
+//     const allowedTypes = ['application/pdf', 'application/msword', 
+//         'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
+    
+//     if (allowedTypes.includes(file.mimetype)) {
+//         cb(null, true);
+//     } else {
+//         cb(new Error('Invalid file type. Only PDF and DOC files are allowed.'), false);
+//     }
+// };
 
 const upload = multer({
     storage: storage,
@@ -495,11 +531,84 @@ const sendMessage = async (req, res) => {
         });
     }
 };
+// const downloadFile = async (req, res) => {
+//     try {
+//         const { messageId, fileId } = req.params;
+        
+//         // First, find the message and the specific file attachment
+//         const message = await Message.findById(messageId);
+//         if (!message) {
+//             return res.status(404).json({
+//                 success: false,
+//                 error: 'Message not found'
+//             });
+//         }
+
+//         // Find the specific file attachment
+//         const fileAttachment = message.attachments.find(
+//             attachment => attachment._id.toString() === fileId
+//         );
+
+//         if (!fileAttachment) {
+//             return res.status(404).json({
+//                 success: false,
+//                 error: 'File attachment not found'
+//             });
+//         }
+
+//         // Construct the file path using the stored filename
+//         const filePath = path.join(__dirname, '../uploads', fileAttachment.fileName);
+
+//         // Check if file exists in the filesystem
+//         if (!fs.existsSync(filePath)) {
+//             return res.status(404).json({
+//                 success: false,
+//                 error: 'File not found on server'
+//             });
+//         }
+
+//         // Get file stats
+//         const stats = fs.statSync(filePath);
+
+//         // Set appropriate headers
+//         res.setHeader('Content-Length', stats.size);
+//         res.setHeader('Content-Type', fileAttachment.fileType || 'application/octet-stream');
+//         res.setHeader(
+//             'Content-Disposition', 
+//             `attachment; filename="${fileAttachment.originalName}"`
+//         );
+
+//         // Create read stream and pipe to response
+//         const fileStream = fs.createReadStream(filePath);
+//         fileStream.pipe(res);
+
+//         // Handle potential errors during streaming
+//         fileStream.on('error', (error) => {
+//             console.error('File stream error:', error);
+//             if (!res.headersSent) {
+//                 res.status(500).json({
+//                     success: false,
+//                     error: 'Error streaming file'
+//                 });
+//             }
+//         });
+
+//     } catch (error) {
+//         console.error('Download file error:', error);
+//         if (!res.headersSent) {
+//             res.status(500).json({
+//                 success: false,
+//                 error: 'Error downloading file'
+//             });
+//         }
+//     }
+// };
+
+
 const downloadFile = async (req, res) => {
     try {
         const { messageId, fileId } = req.params;
         
-        // First, find the message and the specific file attachment
         const message = await Message.findById(messageId);
         if (!message) {
             return res.status(404).json({
@@ -508,7 +617,6 @@ const downloadFile = async (req, res) => {
             });
         }
 
-        // Find the specific file attachment
         const fileAttachment = message.attachments.find(
             attachment => attachment._id.toString() === fileId
         );
@@ -520,10 +628,8 @@ const downloadFile = async (req, res) => {
             });
         }
 
-        // Construct the file path using the stored filename
         const filePath = path.join(__dirname, '../uploads', fileAttachment.fileName);
 
-        // Check if file exists in the filesystem
         if (!fs.existsSync(filePath)) {
             return res.status(404).json({
                 success: false,
@@ -531,22 +637,23 @@ const downloadFile = async (req, res) => {
             });
         }
 
-        // Get file stats
         const stats = fs.statSync(filePath);
 
-        // Set appropriate headers
+        // Set appropriate headers based on file type
         res.setHeader('Content-Length', stats.size);
-        res.setHeader('Content-Type', fileAttachment.fileType || 'application/octet-stream');
+        res.setHeader('Content-Type', fileAttachment.fileType);
+
+        // For images, we can display them inline in the browser
+        const isImage = fileAttachment.fileType.startsWith('image/');
         res.setHeader(
-            'Content-Disposition', 
-            `attachment; filename="${fileAttachment.originalName}"`
+            'Content-Disposition',
+            `${isImage ? 'inline' : 'attachment'}; filename="${fileAttachment.originalName}"`
         );
 
-        // Create read stream and pipe to response
+        // Stream the file
         const fileStream = fs.createReadStream(filePath);
         fileStream.pipe(res);
 
-        // Handle potential errors during streaming
         fileStream.on('error', (error) => {
             console.error('File stream error:', error);
             if (!res.headersSent) {
@@ -567,6 +674,7 @@ const downloadFile = async (req, res) => {
         }
     }
 };
+
 
 module.exports = {
     ...chatController,

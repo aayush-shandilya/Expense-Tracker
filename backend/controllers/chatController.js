@@ -3,6 +3,10 @@ const ChatRoom = require('../models/ChatRoomModel');
 const Message = require('../models/MessageModel');
 const User = require('../models/UserModel');
 
+const multer = require('multer');
+const path = require('path');
+const fs = require('fs');
+
 const chatController = {
     getUserChats: async (req, res) => {
         try {
@@ -116,69 +120,8 @@ const chatController = {
                 error: 'Error fetching messages'
             });
         }
-    },
-sendMessage: async (req, res) => {
-    try {
-        const { chatRoomId, content } = req.body;
-        const userId = req.user.id;
-
-        if (!chatRoomId || !content) {
-            return res.status(400).json({
-                success: false,
-                error: 'ChatRoomId and content are required'
-            });
-        }
-
-        const chatRoom = await ChatRoom.findOne({
-            _id: chatRoomId,
-            participants: userId
-        });
-
-        if (!chatRoom) {
-            return res.status(404).json({
-                success: false,
-                error: 'Chat room not found or unauthorized'
-            });
-        }
-
-        const newMessage = new Message({
-            chatRoom: chatRoomId,
-            sender: userId,
-            content: content,
-            timestamp: new Date(),
-            readBy: [{ user: userId }]
-        });
-
-        await newMessage.save();
-
-        const populatedMessage = await Message.findById(newMessage._id)
-            .populate('sender', 'name email');
-
-        await ChatRoom.findByIdAndUpdate(chatRoomId, {
-            lastMessage: content,
-            lastMessageTime: new Date()
-        });
-
-        const messageToSend = {
-            ...populatedMessage.toObject(),
-            chatRoomId
-        };
-
-        res.status(201).json({
-            success: true,
-            data: messageToSend
-        });
-
-    } catch (error) {
-        console.error('Send message error:', error);
-        res.status(500).json({
-            success: false,
-            error: 'Error sending message'
-        });
     }
-    },
 };
-
 const createGroupChat = async (req, res) => {
     try {
         const { name, participantIds } = req.body;
@@ -447,13 +390,192 @@ const getChatById = async (req, res) => {
     }
 };
 
-// Add these methods to the exports
+// Configure multer for file upload
+const storage = multer.diskStorage({
+    destination: (req, file, cb) => {
+        const uploadDir = 'uploads/';
+        if (!fs.existsSync(uploadDir)) {
+            fs.mkdirSync(uploadDir, { recursive: true });
+        }
+        cb(null, uploadDir);
+    },
+    filename: (req, file, cb) => {
+        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+        cb(null, uniqueSuffix + path.extname(file.originalname));
+    }
+});
+
+const fileFilter = (req, file, cb) => {
+    const allowedTypes = ['application/pdf', 'application/msword', 
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
+    
+    if (allowedTypes.includes(file.mimetype)) {
+        cb(null, true);
+    } else {
+        cb(new Error('Invalid file type. Only PDF and DOC files are allowed.'), false);
+    }
+};
+
+const upload = multer({
+    storage: storage,
+    fileFilter: fileFilter,
+    limits: {
+        fileSize: 5 * 1024 * 1024 // 5MB limit
+    }
+});
+
+const sendMessage = async (req, res) => {
+    try {
+        const { chatRoomId, content } = req.body;
+        const userId = req.user.id;
+        const files = req.files; // Array of uploaded files
+
+        if (!chatRoomId || !content) {
+            return res.status(400).json({
+                success: false,
+                error: 'ChatRoomId and content are required'
+            });
+        }
+
+        const chatRoom = await ChatRoom.findOne({
+            _id: chatRoomId,
+            participants: userId
+        });
+
+        if (!chatRoom) {
+            return res.status(404).json({
+                success: false,
+                error: 'Chat room not found or unauthorized'
+            });
+        }
+
+        // Process file attachments if any
+        const attachments = files ? files.map(file => ({
+            fileName: file.filename,
+            originalName: file.originalname,
+            fileType: file.mimetype,
+            fileSize: file.size,
+            fileUrl: `/uploads/${file.filename}`
+        })) : [];
+
+        const newMessage = new Message({
+            chatRoom: chatRoomId,
+            sender: userId,
+            content: content,
+            attachments: attachments,
+            timestamp: new Date(),
+            readBy: [{ user: userId }]
+        });
+
+        await newMessage.save();
+
+        const populatedMessage = await Message.findById(newMessage._id)
+            .populate('sender', 'name email');
+
+        await ChatRoom.findByIdAndUpdate(chatRoomId, {
+            lastMessage: content,
+            lastMessageTime: new Date()
+        });
+
+        const messageToSend = {
+            ...populatedMessage.toObject(),
+            chatRoomId
+        };
+
+        res.status(201).json({
+            success: true,
+            data: messageToSend
+        });
+
+    } catch (error) {
+        console.error('Send message error:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Error sending message'
+        });
+    }
+};
+const downloadFile = async (req, res) => {
+    try {
+        const { messageId, fileId } = req.params;
+        
+        // First, find the message and the specific file attachment
+        const message = await Message.findById(messageId);
+        if (!message) {
+            return res.status(404).json({
+                success: false,
+                error: 'Message not found'
+            });
+        }
+
+        // Find the specific file attachment
+        const fileAttachment = message.attachments.find(
+            attachment => attachment._id.toString() === fileId
+        );
+
+        if (!fileAttachment) {
+            return res.status(404).json({
+                success: false,
+                error: 'File attachment not found'
+            });
+        }
+
+        // Construct the file path using the stored filename
+        const filePath = path.join(__dirname, '../uploads', fileAttachment.fileName);
+
+        // Check if file exists in the filesystem
+        if (!fs.existsSync(filePath)) {
+            return res.status(404).json({
+                success: false,
+                error: 'File not found on server'
+            });
+        }
+
+        // Get file stats
+        const stats = fs.statSync(filePath);
+
+        // Set appropriate headers
+        res.setHeader('Content-Length', stats.size);
+        res.setHeader('Content-Type', fileAttachment.fileType || 'application/octet-stream');
+        res.setHeader(
+            'Content-Disposition', 
+            `attachment; filename="${fileAttachment.originalName}"`
+        );
+
+        // Create read stream and pipe to response
+        const fileStream = fs.createReadStream(filePath);
+        fileStream.pipe(res);
+
+        // Handle potential errors during streaming
+        fileStream.on('error', (error) => {
+            console.error('File stream error:', error);
+            if (!res.headersSent) {
+                res.status(500).json({
+                    success: false,
+                    error: 'Error streaming file'
+                });
+            }
+        });
+
+    } catch (error) {
+        console.error('Download file error:', error);
+        if (!res.headersSent) {
+            res.status(500).json({
+                success: false,
+                error: 'Error downloading file'
+            });
+        }
+    }
+};
+
 module.exports = {
-    ...chatController, // spread existing methods
+    ...chatController,
     createGroupChat,
     addGroupParticipants,
     removeGroupParticipant,
     updateGroupChat,
-    searchUsers,  // Add this
-    getChatById
+    searchUsers,
+    getChatById,
+    sendMessage: [upload.array('files', 5), sendMessage],
+    downloadFile
 };

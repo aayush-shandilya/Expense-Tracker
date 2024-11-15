@@ -22,4 +22,8 @@ router.put('/group/:groupId', chatController.updateGroupChat);
 router.get('/users/search', chatController.searchUsers);  // Add this line
 router.get('/chat/group/:chatId', chatController.getChatById);
 
+router.post('/messages', chatController.sendMessage);
+router.get('/messages/:messageId/files/:fileId', chatController.downloadFile);
+
+
 module.exports = router;

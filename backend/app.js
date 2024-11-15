@@ -112,6 +112,8 @@ app.use('/api/v1/auth', require('./routes/auth'));
 app.use('/api/v1/transactions', protect, require('./routes/transaction'));
 app.use('/api/v1/chat', protect, require('./routes/chatRoutes')); // New chat routes
 
+app.use('/uploads', express.static('uploads'));
+
 // Error handling middleware
 app.use((err, req, res, next) => {
     console.error('Error details:', {

@@ -22,6 +22,10 @@ import {
 } from '@mui/material';
 import SendIcon from '@mui/icons-material/Send';
 import { UserPlus, UserMinus, Users, Search } from 'lucide-react';
+import { AttachFile, Description, Download } from '@mui/icons-material';
+import { Chip, IconButton as MuiIconButton } from '@mui/material';
+import MessageInput from './MessageInput';
+
 
 const StyledChatHeader = styled(Paper)(({ theme }) => ({
     padding: theme.spacing(2),
@@ -409,6 +413,8 @@ const ChatWindow = ({ chatRoom, socket, currentUser, onChatRoomUpdate }) => {
     const [loading, setLoading] = useState(true);
     const messagesEndRef = useRef(null);
     const [sending, setSending] = useState(false);
+    const [selectedFiles, setSelectedFiles] = useState([]);
+    const fileInputRef = useRef(null);
 
     useEffect(() => {
         if (chatRoom?._id) {
@@ -446,47 +452,6 @@ const ChatWindow = ({ chatRoom, socket, currentUser, onChatRoomUpdate }) => {
             socket.off('receive_message', handleNewMessage);
         };
     }, [socket]);
-
-// Update sendMessage function
-    const sendMessage = async (e) => {
-        e.preventDefault();
-        if (!newMessage.trim() || sending) return;
-
-        try {
-            setSending(true);
-            const messageData = {
-                chatRoomId: chatRoom._id,
-                content: newMessage.trim()
-            };
-
-            const response = await fetch('http://localhost:5001/api/v1/chat/messages', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${localStorage.getItem('token')}`
-                },
-                body: JSON.stringify(messageData)
-            });
-
-            const data = await response.json();
-            
-            if (!response.ok) {
-                throw new Error(data.error || 'Failed to send message');
-            }
-
-            if (data.success) {
-                // Emit the saved message through socket with all necessary data
-                socket?.emit('send_message', data.data);
-                setNewMessage('');
-                setMessages(prev => [...prev, data.data]);
-                scrollToBottom();
-            }
-        } catch (error) {
-            console.error('Error sending message:', error);
-        } finally {
-            setSending(false);
-        }
-    };
 
     const fetchMessages = async () => {
         try {
@@ -527,102 +492,216 @@ const ChatWindow = ({ chatRoom, socket, currentUser, onChatRoomUpdate }) => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     };
 
-const handleAddMembers = async (userId) => {
-    try {
-        const response = await fetch(`http://localhost:5001/api/v1/chat/group/${chatRoom._id}/participant`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${localStorage.getItem('token')}`
-            },
-            body: JSON.stringify({ 
-                participantIds: [userId] 
-            })
-        });
-        
-        if (!response.ok) throw new Error('Failed to add member');
-        
-        const data = await response.json();
-        if (data.success && typeof onChatRoomUpdate === 'function') {
-            // Ensure we update with the complete chat data
-            onChatRoomUpdate({
-                ...chatRoom,
-                ...data.data
-            });
-        }
-    } catch (error) {
-        console.error('Error adding member:', error);
-        alert('Failed to add member');
-    }
-};
 
-const handleRemoveMember = async (memberId) => {
-    try {
-        const response = await fetch(
-            `http://localhost:5001/api/v1/chat/group/${chatRoom._id}/participant/${memberId}`,
-            {
-                method: 'DELETE',
+    const handleFileSelect = (event) => {
+        const files = Array.from(event.target.files);
+        const validFiles = files.filter(file => {
+            const isValidType = ['application/pdf', 'application/msword',
+                'application/vnd.openxmlformats-officedocument.wordprocessingml.document'].includes(file.type);
+            const isValidSize = file.size <= 5 * 1024 * 1024; // 5MB
+            return isValidType && isValidSize;
+        });
+
+        if (validFiles.length !== files.length) {
+            alert('Some files were skipped. Only PDF and DOC files under 5MB are allowed.');
+        }
+
+        setSelectedFiles(validFiles);
+    };
+
+    const sendMessage = async (e) => {
+        e.preventDefault();
+        if ((!newMessage.trim() && selectedFiles.length === 0) || sending) return;
+
+        try {
+            setSending(true);
+            const formData = new FormData();
+            formData.append('chatRoomId', chatRoom._id);
+            formData.append('content', newMessage.trim() || ' ');
+            
+            selectedFiles.forEach(file => {
+                formData.append('files', file);
+            });
+
+            const response = await fetch('http://localhost:5001/api/v1/chat/messages', {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${localStorage.getItem('token')}`
+                },
+                body: formData
+            });
+
+            const data = await response.json();
+            
+            if (!response.ok) {
+                throw new Error(data.error || 'Failed to send message');
+            }
+
+            if (data.success) {
+                socket?.emit('send_message', data.data);
+                setNewMessage('');
+                setSelectedFiles([]);
+                setMessages(prev => [...prev, data.data]);
+                scrollToBottom();
+            }
+        } catch (error) {
+            console.error('Error sending message:', error);
+        } finally {
+            setSending(false);
+        }
+    };
+    const handleDownload = async (messageId, fileId) => {
+        try {
+            const response = await fetch(
+                `http://localhost:5001/api/v1/chat/messages/${messageId}/files/${fileId}`,
+                {
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('token')}`
+                    }
+                }
+            );
+    
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.error || 'Download failed');
+            }
+    
+            // Get the filename from the Content-Disposition header if available
+            const contentDisposition = response.headers.get('Content-Disposition');
+            let filename = 'download';
+            if (contentDisposition) {
+                const filenameMatch = contentDisposition.match(/filename="(.+)"/);
+                if (filenameMatch) {
+                    filename = filenameMatch[1];
+                }
+            }
+    
+            const blob = await response.blob();
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            window.URL.revokeObjectURL(url);
+            document.body.removeChild(a);
+        } catch (error) {
+            console.error('Error downloading file:', error);
+            alert(`Failed to download file: ${error.message}`);
+        }
+    };
+
+    const handleAddMembers = async (userId) => {
+        try {
+            const response = await fetch(`http://localhost:5001/api/v1/chat/group/${chatRoom._id}/participant`, {
+                method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                     'Authorization': `Bearer ${localStorage.getItem('token')}`
-                }
-            }
-        );
-        
-        if (!response.ok) throw new Error('Failed to remove member');
-        
-        const data = await response.json();
-        if (data.success && typeof onChatRoomUpdate === 'function') {
-            // Ensure we update with the complete chat data
-            onChatRoomUpdate({
-                ...chatRoom,
-                ...data.data
+                },
+                body: JSON.stringify({ 
+                    participantIds: [userId] 
+                })
             });
-        }
-    } catch (error) {
-        console.error('Error removing member:', error);
-        alert('Failed to remove member');
-    }
-};
-
-
-const refreshChatRoom = async () => {
-    try {
-        const response = await fetch(
-            `http://localhost:5001/api/v1/chat/group/${chatRoom._id}`,
-            {
-                headers: {
-                    'Authorization': `Bearer ${localStorage.getItem('token')}`
-                }
+            
+            if (!response.ok) throw new Error('Failed to add member');
+            
+            const data = await response.json();
+            if (data.success && typeof onChatRoomUpdate === 'function') {
+                // Ensure we update with the complete chat data
+                onChatRoomUpdate({
+                    ...chatRoom,
+                    ...data.data
+                });
             }
-        );
-        
-        if (!response.ok) throw new Error('Failed to refresh chat room');
-        
-        const data = await response.json();
-        if (data.success) {
-            // Update the chat room data in the parent component
-            // You'll need to pass this function as a prop from the parent
-            onChatRoomUpdate(data.data);
+        } catch (error) {
+            console.error('Error adding member:', error);
+            alert('Failed to add member');
         }
-    } catch (error) {
-        console.error('Error refreshing chat room:', error);
-    }
-};
+    };
+
+    const handleRemoveMember = async (memberId) => {
+        try {
+            const response = await fetch(
+                `http://localhost:5001/api/v1/chat/group/${chatRoom._id}/participant/${memberId}`,
+                {
+                    method: 'DELETE',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${localStorage.getItem('token')}`
+                    }
+                }
+            );
+            
+            if (!response.ok) throw new Error('Failed to remove member');
+            
+            const data = await response.json();
+            if (data.success && typeof onChatRoomUpdate === 'function') {
+                // Ensure we update with the complete chat data
+                onChatRoomUpdate({
+                    ...chatRoom,
+                    ...data.data
+                });
+            }
+        } catch (error) {
+            console.error('Error removing member:', error);
+            alert('Failed to remove member');
+        }
+    };
 
 
-if (loading) {
+    const refreshChatRoom = async () => {
+        try {
+            const response = await fetch(
+                `http://localhost:5001/api/v1/chat/group/${chatRoom._id}`,
+                {
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('token')}`
+                    }
+                }
+            );
+            
+            if (!response.ok) throw new Error('Failed to refresh chat room');
+            
+            const data = await response.json();
+            if (data.success) {
+                // Update the chat room data in the parent component
+                // You'll need to pass this function as a prop from the parent
+                onChatRoomUpdate(data.data);
+            }
+        } catch (error) {
+            console.error('Error refreshing chat room:', error);
+        }
+    };
+
+    const FileAttachment = ({ file, onDownload }) => {
         return (
-            <Box sx={{ 
-                display: 'flex', 
-                justifyContent: 'center', 
-                alignItems: 'center',
-                height: '100%'
-            }}>
-                <CircularProgress />
-            </Box>
+            <Chip
+                icon={<Description />}
+                label={file.originalName}
+                onClick={onDownload}
+                onDelete={onDownload}
+                deleteIcon={<Download />}
+                variant="outlined"
+                size="small"
+                sx={{ mt: 1 }}
+            />
         );
-    }
+    };
+
+
+    if (loading) {
+            return (
+                <Box sx={{ 
+                    display: 'flex', 
+                    justifyContent: 'center', 
+                    alignItems: 'center',
+                    height: '100%'
+                }}>
+                    <CircularProgress />
+                </Box>
+            );
+        }
 
     if (!chatRoom || !chatRoom.participants) {
         return (
@@ -664,6 +743,13 @@ if (loading) {
                             <Typography variant="body1">
                                 {message.content}
                             </Typography>
+                            {message.attachments?.map(file => (
+                                <FileAttachment
+                                    key={file._id}
+                                    file={file}
+                                    onDownload={() => handleDownload(message._id, file._id)}
+                                />
+                            ))}
                             <Typography 
                                 variant="caption" 
                                 sx={{ 
@@ -680,7 +766,7 @@ if (loading) {
                 <div ref={messagesEndRef} />
             </MessageContainer>
 
-            <Box
+            {/* <Box
                 component="form"
                 onSubmit={sendMessage}
                 sx={{
@@ -691,6 +777,22 @@ if (loading) {
                     gap: 1
                 }}
             >
+                <input
+                    type="file"
+                    multiple
+                    accept=".pdf,.doc,.docx"
+                    style={{ display: 'none' }}
+                    ref={fileInputRef}
+                    onChange={handleFileSelect}
+                />
+                
+                <IconButton
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={sending}
+                >
+                    <AttachFile />
+                </IconButton>
+
                 <TextField
                     fullWidth
                     variant="outlined"
@@ -700,16 +802,36 @@ if (loading) {
                     disabled={sending}
                     size="small"
                 />
+                
+                {selectedFiles.length > 0 && (
+                    <Box sx={{ ml: 1 }}>
+                        <Typography variant="caption">
+                            {selectedFiles.length} file(s) selected
+                        </Typography>
+                    </Box>
+                )}
+
                 <IconButton 
                     type="submit" 
                     color="primary"
-                    disabled={!newMessage.trim() || sending}
+                    disabled={(!newMessage.trim() && selectedFiles.length === 0) || sending}
                 >
                     <SendIcon />
                 </IconButton>
-            </Box>
+            </Box> */}
+            <MessageInput
+                newMessage={newMessage}
+                setNewMessage={setNewMessage}
+                sending={sending}
+                selectedFiles={selectedFiles}
+                setSelectedFiles={setSelectedFiles}
+                fileInputRef={fileInputRef}
+                handleSubmit={sendMessage}
+            />
         </Box>
     );
 };
+
+            
 export { UserSearchDialog, GroupChatHeader };
 export default ChatWindow;

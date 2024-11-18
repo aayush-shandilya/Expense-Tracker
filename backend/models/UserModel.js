@@ -24,6 +24,14 @@ const UserSchema = new mongoose.Schema({
     createdAt: {
         type: Date,
         default: Date.now
+    },
+    isOnline: {
+        type: Boolean,
+        default: false
+    },
+    lastActive: {
+        type: Date,
+        default: Date.now
     }
 });
 

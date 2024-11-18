@@ -33,56 +33,63 @@ const chatController = {
         }
     },
 
-    createPrivateChat: async (req, res) => {
-        try {
-            const { participantId } = req.body;
-            const userId = req.user.id;
+    // createPrivateChat: async (req, res) => {
+    //     try {
+    //         const { participantId } = req.body;
+    //         const userId = req.user.id;
 
-            const participant = await User.findById(participantId);
-            if (!participant) {
-                return res.status(404).json({
-                    success: false,
-                    error: 'Participant not found'
-                });
-            }
+    //         const participant = await User.findById(participantId);
+    //         if (!participant) {
+    //             return res.status(404).json({
+    //                 success: false,
+    //                 error: 'Participant not found'
+    //             });
+    //         }
 
-            const existingChat = await ChatRoom.findOne({
-                type: 'private',
-                participants: {
-                    $all: [userId, participantId],
-                    $size: 2
-                }
-            }).populate('participants', 'name email');
+    //         if (!participant.isOnline) {
+    //             return res.status(400).json({
+    //                 success: false,
+    //                 error: 'User is currently offline. You can only start chats with online users.'
+    //             });
+    //         }
 
-            if (existingChat) {
-                return res.status(200).json({
-                    success: true,
-                    data: existingChat
-                });
-            }
+    //         const existingChat = await ChatRoom.findOne({
+    //             type: 'private',
+    //             participants: {
+    //                 $all: [userId, participantId],
+    //                 $size: 2
+    //             }
+    //         }).populate('participants', 'name email isOnline');
 
-            const newChat = await ChatRoom.create({
-                type: 'private',
-                participants: [userId, participantId],
-                createdBy: userId
-            });
+    //         if (existingChat) {
+    //             return res.status(200).json({
+    //                 success: true,
+    //                 data: existingChat
+    //             });
+    //         }
 
-            const populatedChat = await ChatRoom.findById(newChat._id)
-                .populate('participants', 'name email');
+    //         const newChat = await ChatRoom.create({
+    //             type: 'private',
+    //             participants: [userId, participantId],
+    //             createdBy: userId
+    //         });
 
-            res.status(201).json({
-                success: true,
-                data: populatedChat
-            });
+    //         const populatedChat = await ChatRoom.findById(newChat._id)
+    //             .populate('participants', 'name email isOnline');
 
-        } catch (error) {
-            console.error('Create private chat error:', error);
-            res.status(500).json({
-                success: false,
-                error: 'Error creating chat room'
-            });
-        }
-    },
+    //         res.status(201).json({
+    //             success: true,
+    //             data: populatedChat
+    //         });
+
+    //     } catch (error) {
+    //         console.error('Create private chat error:', error);
+    //         res.status(500).json({
+    //             success: false,
+    //             error: 'Error creating chat room'
+    //         });
+    //     }
+    // },
     getChatMessages: async (req, res) => {
         try {
             const { chatId } = req.params;
@@ -120,6 +127,145 @@ const chatController = {
                 error: 'Error fetching messages'
             });
         }
+    }
+};
+
+// const createPrivateChat= async (req, res) => {
+//     try {
+//         const { participantId } = req.body;
+//         const userId = req.user.id;
+
+//         const participant = await User.findById(participantId);
+//         if (!participant) {
+//             return res.status(404).json({
+//                 success: false,
+//                 error: 'Participant not found'
+//             });
+//         }
+
+//         if (!participant.isOnline) {
+//             return res.status(400).json({
+//                 success: false,
+//                 error: 'User is currently offline. You can only start chats with online users.'
+//             });
+//         }
+
+//         const existingChat = await ChatRoom.findOne({
+//             type: 'private',
+//             participants: {
+//                 $all: [userId, participantId],
+//                 $size: 2
+//             }
+//         }).populate('participants', 'name email isOnline');
+
+//         if (existingChat) {
+//             return res.status(200).json({
+//                 success: true,
+//                 data: existingChat
+//             });
+//         }
+
+//         const newChat = await ChatRoom.create({
+//             type: 'private',
+//             participants: [userId, participantId],
+//             createdBy: userId
+//         });
+
+//         const populatedChat = await ChatRoom.findById(newChat._id)
+//             .populate('participants', 'name email isOnline');
+
+//         res.status(201).json({
+//             success: true,
+//             data: populatedChat
+//         });
+
+//     } catch (error) {
+//         console.error('Create private chat error:', error);
+//         res.status(500).json({
+//             success: false,
+//             error: 'Error creating chat room'
+//         });
+//     }
+// };
+
+const createPrivateChat = async (req, res) => {
+    try {
+        const { participantId } = req.body;
+        const userId = req.user.id;
+
+        console.log('Received request:', {
+            participantId,
+            userId,
+            body: req.body
+        });
+
+        if (!participantId) {
+            return res.status(400).json({
+                success: false,
+                error: 'Participant ID is required'
+            });
+        }
+
+        // Check if participant exists
+        const participant = await User.findById(participantId);
+        console.log('Found participant:', participant);
+
+        if (!participant) {
+            return res.status(404).json({
+                success: false,
+                error: 'Participant not found'
+            });
+        }
+
+        // Check if participant is online
+        if (!participant.isOnline) {
+            return res.status(400).json({
+                success: false,
+                error: 'User is currently offline. You can only start chats with online users.'
+            });
+        }
+
+        // Check for existing chat
+        const existingChat = await ChatRoom.findOne({
+            type: 'private',
+            participants: {
+                $all: [userId, participantId],
+                $size: 2
+            }
+        });
+
+        console.log('Existing chat:', existingChat);
+
+        if (existingChat) {
+            return res.status(200).json({
+                success: true,
+                data: existingChat
+            });
+        }
+
+        // Create new chat
+        const newChat = await ChatRoom.create({
+            type: 'private',
+            participants: [userId, participantId],
+            createdBy: userId
+        });
+
+        const populatedChat = await ChatRoom.findById(newChat._id)
+            .populate('participants', 'name email isOnline');
+
+        console.log('Created new chat:', populatedChat);
+
+        res.status(201).json({
+            success: true,
+            data: populatedChat
+        });
+
+    } catch (error) {
+        console.error('Create private chat error:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Error creating chat room'
+        });
     }
 };
 const createGroupChat = async (req, res) => {
@@ -320,44 +466,121 @@ const updateGroupChat = async (req, res) => {
     }
 };
 
+
+// const searchUsers = async (req, res) => {
+//     try {
+//         const { query } = req.query;
+//         const userId = req.user.id;
+
+//         if (!query) {
+//             return res.status(400).json({
+//                 success: false,
+//                 error: 'Search query is required'
+//             });
+//         }
+
+//         const users = await User.find({
+//             $and: [
+//                 {
+//                     $or: [
+//                         { name: { $regex: query, $options: 'i' } },
+//                         { email: { $regex: query, $options: 'i' } }
+//                     ]
+//                 },
+//                 { _id: { $ne: userId } }
+//             ]
+//         }).select('name email _id isOnline lastActive');
+
+//         res.status(200).json({
+//             success: true,
+//             data: users
+//         });
+//     } catch (error) {
+//         console.error('Search users error:', error);
+//         res.status(500).json({
+//             success: false,
+//             error: 'Error searching users'
+//         });
+//     }
+// };
+
 const searchUsers = async (req, res) => {
     try {
-        const { query } = req.query;
-        const userId = req.user.id;
+        const { term } = req.query;
+        
+        console.log('Search term received:', term); // Debug log
 
-        if (!query) {
-            return res.status(400).json({
-                success: false,
-                error: 'Search query is required'
+        if (!term) {
+            console.log('No search term provided, returning empty array'); // Debug log
+            return res.json({
+                success: true,
+                data: []
             });
         }
 
-        // Search for users that match the query in name or email
-        // Exclude the current user from results
         const users = await User.find({
             $and: [
                 {
                     $or: [
-                        { name: { $regex: query, $options: 'i' } },
-                        { email: { $regex: query, $options: 'i' } }
+                        { name: { $regex: term, $options: 'i' } },
+                        { email: { $regex: term, $options: 'i' } }
                     ]
                 },
-                { _id: { $ne: userId } } // Exclude current user
+                { _id: { $ne: req.user.id } }
             ]
-        }).select('name email _id');
+        }).select('name email isOnline lastActive');
 
-        res.status(200).json({
+        console.log('Found users:', users); // Debug log
+
+        // Ensure we're sending an array and transform the data
+        const formattedUsers = users.map(user => ({
+            _id: user._id.toString(),
+            name: user.name || 'Unknown',
+            email: user.email || '',
+            isOnline: !!user.isOnline,
+            lastActive: user.lastActive || new Date()
+        }));
+
+        console.log('Formatted users:', formattedUsers); // Debug log
+
+        res.json({
             success: true,
-            data: users
+            data: formattedUsers
         });
+        
     } catch (error) {
         console.error('Search users error:', error);
-        res.status(500).json({
+        res.status(500).json({ 
             success: false,
-            error: 'Error searching users'
+            error: error.message || 'Server error',
+            data: []
         });
     }
 };
+
+// Add these utility functions for managing online status
+const updateUserOnlineStatus = async (userId, isOnline) => {
+    try {
+        await User.findByIdAndUpdate(userId, {
+            isOnline,
+            lastActive: new Date()
+        });
+    } catch (error) {
+        console.error('Error updating online status:', error);
+    }
+};
+
+// Add this to your auth middleware or login handler
+const handleUserLogin = async (userId) => {
+    await updateUserOnlineStatus(userId, true);
+};
+
+// Add this to your logout handler
+const handleUserLogout = async (userId) => {
+    await updateUserOnlineStatus(userId, false);
+};
+
+
 const getChatById = async (req, res) => {
     try {
         const { chatId } = req.params;
@@ -585,5 +808,11 @@ module.exports = {
     searchUsers,
     getChatById,
     sendMessage: [upload.array('files', 5), sendMessage],
-    downloadFile
+    downloadFile,
+
+
+    createPrivateChat,
+    handleUserLogin,
+    handleUserLogout,
+    updateUserOnlineStatus
 };

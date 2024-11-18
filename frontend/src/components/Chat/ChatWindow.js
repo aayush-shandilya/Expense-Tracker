@@ -1,48 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Box, Typography, Avatar, Paper, CircularProgress } from '@mui/material';
+import { Box, Typography, CircularProgress } from '@mui/material';
 import { styled } from '@mui/material/styles';
 import { MessageBubble, MessageInput } from './MessageInput';
-
-const StyledChatHeader = styled(Paper)(({ theme }) => ({
-    padding: theme.spacing(2),
-    backgroundColor: 'rgba(252, 246, 249, 0.9)',
-    borderBottom: '1px solid rgba(34, 34, 96, 0.1)',
-    display: 'flex',
-    alignItems: 'center',
-    gap: theme.spacing(2)
-}));
-const ChatHeader = ({ chat, currentUser }) => {
-    const chatPartner = chat?.participants?.find(p => p._id !== currentUser._id);
-
-    if (chat?.type !== 'group') {
-        return (
-            <StyledChatHeader elevation={1}>
-                <Avatar sx={{ bgcolor: 'rgba(34, 34, 96, 0.8)' }}>
-                    {chatPartner?.name?.[0]?.toUpperCase() || '?'}
-                </Avatar>
-                <Typography variant="h6" sx={{ color: 'rgba(34, 34, 96, 0.8)' }}>
-                    {chatPartner?.name || 'Unknown User'}
-                </Typography>
-            </StyledChatHeader>
-        );
-    }
-
-    return (
-        <StyledChatHeader elevation={1}>
-            <Avatar sx={{ bgcolor: 'rgba(96, 34, 34, 0.8)' }}>
-                {chat.name?.[0]?.toUpperCase() || '?'}
-            </Avatar>
-            <Box sx={{ flex: 1 }}>
-                <Typography variant="h6" sx={{ color: 'rgba(34, 34, 96, 0.8)' }}>
-                    {chat.name}
-                </Typography>
-                <Typography variant="caption">
-                    {chat.participants?.length || 0} members
-                </Typography>
-            </Box>
-        </StyledChatHeader>
-    );
-};
+import ChatHeader from './ChatHeader';
 
 const MessageContainer = styled(Box)(({ theme }) => ({
     flex: 1,
@@ -222,62 +182,13 @@ const ChatWindow = ({ chatRoom, socket, currentUser, onChatRoomUpdate }) => {
         );
     }
 
-    const headerProps = {
-        chat: chatRoom,
-        currentUser,
-        onAddMembers: async (userId) => {
-            try {
-                const response = await fetch(
-                    `http://localhost:5001/api/v1/chat/group/${chatRoom._id}/participant`,
-                    {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'Authorization': `Bearer ${localStorage.getItem('token')}`
-                        },
-                        body: JSON.stringify({ participantIds: [userId] })
-                    }
-                );
-                
-                if (!response.ok) throw new Error('Failed to add member');
-                
-                const data = await response.json();
-                if (data.success && onChatRoomUpdate) {
-                    onChatRoomUpdate({ ...chatRoom, ...data.data });
-                }
-            } catch (error) {
-                console.error('Error adding member:', error);
-                alert('Failed to add member');
-            }
-        },
-        onRemoveMember: async (memberId) => {
-            try {
-                const response = await fetch(
-                    `http://localhost:5001/api/v1/chat/group/${chatRoom._id}/participant/${memberId}`,
-                    {
-                        method: 'DELETE',
-                        headers: {
-                            'Authorization': `Bearer ${localStorage.getItem('token')}`
-                        }
-                    }
-                );
-                
-                if (!response.ok) throw new Error('Failed to remove member');
-                
-                const data = await response.json();
-                if (data.success && onChatRoomUpdate) {
-                    onChatRoomUpdate({ ...chatRoom, ...data.data });
-                }
-            } catch (error) {
-                console.error('Error removing member:', error);
-                alert('Failed to remove member');
-            }
-        },
-        onChatRoomUpdate
-    };
     return (
         <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
-            <ChatHeader {...headerProps} />
+            <ChatHeader 
+                chat={chatRoom} 
+                currentUser={currentUser}
+                onChatRoomUpdate={onChatRoomUpdate}
+            />
             <MessageContainer>
                 {messages.map((message) => (
                     <MessageBubble

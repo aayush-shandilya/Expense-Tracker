@@ -2,6 +2,8 @@
 const ChatRoom = require('../models/ChatRoomModel');
 const Message = require('../models/MessageModel');
 const User = require('../models/UserModel');
+const redisService = require('../services/redisService');
+
 
 const multer = require('multer');
 const path = require('path');
@@ -32,64 +34,6 @@ const chatController = {
             });
         }
     },
-
-    // createPrivateChat: async (req, res) => {
-    //     try {
-    //         const { participantId } = req.body;
-    //         const userId = req.user.id;
-
-    //         const participant = await User.findById(participantId);
-    //         if (!participant) {
-    //             return res.status(404).json({
-    //                 success: false,
-    //                 error: 'Participant not found'
-    //             });
-    //         }
-
-    //         if (!participant.isOnline) {
-    //             return res.status(400).json({
-    //                 success: false,
-    //                 error: 'User is currently offline. You can only start chats with online users.'
-    //             });
-    //         }
-
-    //         const existingChat = await ChatRoom.findOne({
-    //             type: 'private',
-    //             participants: {
-    //                 $all: [userId, participantId],
-    //                 $size: 2
-    //             }
-    //         }).populate('participants', 'name email isOnline');
-
-    //         if (existingChat) {
-    //             return res.status(200).json({
-    //                 success: true,
-    //                 data: existingChat
-    //             });
-    //         }
-
-    //         const newChat = await ChatRoom.create({
-    //             type: 'private',
-    //             participants: [userId, participantId],
-    //             createdBy: userId
-    //         });
-
-    //         const populatedChat = await ChatRoom.findById(newChat._id)
-    //             .populate('participants', 'name email isOnline');
-
-    //         res.status(201).json({
-    //             success: true,
-    //             data: populatedChat
-    //         });
-
-    //     } catch (error) {
-    //         console.error('Create private chat error:', error);
-    //         res.status(500).json({
-    //             success: false,
-    //             error: 'Error creating chat room'
-    //         });
-    //     }
-    // },
     getChatMessages: async (req, res) => {
         try {
             const { chatId } = req.params;
@@ -130,102 +74,19 @@ const chatController = {
     }
 };
 
-// const createPrivateChat= async (req, res) => {
-//     try {
-//         const { participantId } = req.body;
-//         const userId = req.user.id;
-
-//         const participant = await User.findById(participantId);
-//         if (!participant) {
-//             return res.status(404).json({
-//                 success: false,
-//                 error: 'Participant not found'
-//             });
-//         }
-
-//         if (!participant.isOnline) {
-//             return res.status(400).json({
-//                 success: false,
-//                 error: 'User is currently offline. You can only start chats with online users.'
-//             });
-//         }
-
-//         const existingChat = await ChatRoom.findOne({
-//             type: 'private',
-//             participants: {
-//                 $all: [userId, participantId],
-//                 $size: 2
-//             }
-//         }).populate('participants', 'name email isOnline');
-
-//         if (existingChat) {
-//             return res.status(200).json({
-//                 success: true,
-//                 data: existingChat
-//             });
-//         }
-
-//         const newChat = await ChatRoom.create({
-//             type: 'private',
-//             participants: [userId, participantId],
-//             createdBy: userId
-//         });
-
-//         const populatedChat = await ChatRoom.findById(newChat._id)
-//             .populate('participants', 'name email isOnline');
-
-//         res.status(201).json({
-//             success: true,
-//             data: populatedChat
-//         });
-
-//     } catch (error) {
-//         console.error('Create private chat error:', error);
-//         res.status(500).json({
-//             success: false,
-//             error: 'Error creating chat room'
-//         });
-//     }
-// };
-
 const createPrivateChat = async (req, res) => {
     try {
         const { participantId } = req.body;
         const userId = req.user.id;
 
-        console.log('Received request:', {
-            participantId,
-            userId,
-            body: req.body
-        });
-
-        if (!participantId) {
-            return res.status(400).json({
-                success: false,
-                error: 'Participant ID is required'
-            });
-        }
-
         // Check if participant exists
         const participant = await User.findById(participantId);
-        console.log('Found participant:', participant);
-
         if (!participant) {
             return res.status(404).json({
                 success: false,
                 error: 'Participant not found'
             });
         }
-
-        // Check if participant is online
-        if (!participant.isOnline) {
-            return res.status(400).json({
-                success: false,
-                error: 'User is currently offline. You can only start chats with online users.'
-            });
-        }
-
-        // Check for existing chat
         const existingChat = await ChatRoom.findOne({
             type: 'private',
             participants: {
@@ -233,8 +94,6 @@ const createPrivateChat = async (req, res) => {
                 $size: 2
             }
         });
-
-        console.log('Existing chat:', existingChat);
 
         if (existingChat) {
             return res.status(200).json({
@@ -250,10 +109,10 @@ const createPrivateChat = async (req, res) => {
             createdBy: userId
         });
 
-        const populatedChat = await ChatRoom.findById(newChat._id)
-            .populate('participants', 'name email isOnline');
+        await redisService.createChatRoom(newChat._id, [userId, participantId]);
 
-        console.log('Created new chat:', populatedChat);
+        const populatedChat = await ChatRoom.findById(newChat._id)
+            .populate('participants', 'name email');
 
         res.status(201).json({
             success: true,
@@ -268,6 +127,8 @@ const createPrivateChat = async (req, res) => {
         });
     }
 };
+
+
 const createGroupChat = async (req, res) => {
     try {
         const { name, participantIds } = req.body;
@@ -466,44 +327,6 @@ const updateGroupChat = async (req, res) => {
     }
 };
 
-
-// const searchUsers = async (req, res) => {
-//     try {
-//         const { query } = req.query;
-//         const userId = req.user.id;
-
-//         if (!query) {
-//             return res.status(400).json({
-//                 success: false,
-//                 error: 'Search query is required'
-//             });
-//         }
-
-//         const users = await User.find({
-//             $and: [
-//                 {
-//                     $or: [
-//                         { name: { $regex: query, $options: 'i' } },
-//                         { email: { $regex: query, $options: 'i' } }
-//                     ]
-//                 },
-//                 { _id: { $ne: userId } }
-//             ]
-//         }).select('name email _id isOnline lastActive');
-
-//         res.status(200).json({
-//             success: true,
-//             data: users
-//         });
-//     } catch (error) {
-//         console.error('Search users error:', error);
-//         res.status(500).json({
-//             success: false,
-//             error: 'Error searching users'
-//         });
-//     }
-// };
-
 const searchUsers = async (req, res) => {
     try {
         const { term } = req.query;
@@ -656,11 +479,182 @@ const upload = multer({
     }
 });
 
+// const sendMessage = async (req, res) => {
+//     try {
+//         const { chatRoomId, content } = req.body;
+//         const userId = req.user.id;
+//         const files = req.files; // Array of uploaded files
+
+//         if (!chatRoomId || !content) {
+//             return res.status(400).json({
+//                 success: false,
+//                 error: 'ChatRoomId and content are required'
+//             });
+//         }
+
+//         const chatRoom = await ChatRoom.findOne({
+//             _id: chatRoomId,
+//             participants: userId
+//         });
+
+//         if (!chatRoom) {
+//             return res.status(404).json({
+//                 success: false,
+//                 error: 'Chat room not found or unauthorized'
+//             });
+//         }
+
+//         // Process file attachments if any
+//         const attachments = files ? files.map(file => ({
+//             fileName: file.filename,
+//             originalName: file.originalname,
+//             fileType: file.mimetype,
+//             fileSize: file.size,
+//             fileUrl: `/uploads/${file.filename}`
+//         })) : [];
+
+//         const newMessage = new Message({
+//             chatRoom: chatRoomId,
+//             sender: userId,
+//             content: content,
+//             attachments: attachments,
+//             timestamp: new Date(),
+//             readBy: [{ user: userId }]
+//         });
+
+//         await newMessage.save();
+
+//         const populatedMessage = await Message.findById(newMessage._id)
+//             .populate('sender', 'name email');
+
+//         await ChatRoom.findByIdAndUpdate(chatRoomId, {
+//             lastMessage: content,
+//             lastMessageTime: new Date()
+//         });
+
+//         const messageToSend = {
+//             ...populatedMessage.toObject(),
+//             chatRoomId
+//         };
+
+//         res.status(201).json({
+//             success: true,
+//             data: messageToSend
+//         });
+
+//     } catch (error) {
+//         console.error('Send message error:', error);
+//         res.status(500).json({
+//             success: false,
+//             error: 'Error sending message'
+//         });
+//     }
+// };
+
+
+// const sendMessage = async (req, res) => {
+//     try {
+//         const { chatRoomId, content } = req.body;
+//         const userId = req.user.id;
+//         const files = req.files; // Array of uploaded files
+
+//         // Input validation
+//         if (!chatRoomId || !content) {
+//             return res.status(400).json({
+//                 success: false,
+//                 error: 'ChatRoomId and content are required'
+//             });
+//         }
+
+//         // Find chat room and verify participant
+//         const chatRoom = await ChatRoom.findOne({
+//             _id: chatRoomId,
+//             participants: userId
+//         });
+
+//         if (!chatRoom) {
+//             return res.status(404).json({
+//                 success: false,
+//                 error: 'Chat room not found or unauthorized'
+//             });
+//         }
+
+//         // Process file attachments if any
+//         const attachments = files ? files.map(file => ({
+//             fileName: file.filename,
+//             originalName: file.originalname,
+//             fileType: file.mimetype,
+//             fileSize: file.size,
+//             fileUrl: `/uploads/${file.filename}`
+//         })) : [];
+
+//         // Create and save new message
+//         const newMessage = new Message({
+//             chatRoom: chatRoomId,
+//             sender: userId,
+//             content: content,
+//             attachments: attachments,
+//             timestamp: new Date(),
+//             readBy: [{ user: userId }]
+//         });
+
+//         await newMessage.save();
+
+//         // Populate sender details
+//         const populatedMessage = await Message.findById(newMessage._id)
+//             .populate('sender', 'name email');
+
+//         // Update chat room with last message
+//         await ChatRoom.findByIdAndUpdate(chatRoomId, {
+//             lastMessage: content,
+//             lastMessageTime: new Date()
+//         });
+
+//         const messageToSend = {
+//             ...populatedMessage.toObject(),
+//             chatRoomId
+//         };
+
+//         // Handle real-time notifications and offline messages
+//         for (const participantId of chatRoom.participants) {
+//             if (participantId.toString() !== userId) {
+//                 const isOnline = await redisService.isUserOnline(participantId);
+                
+//                 if (isOnline) {
+//                     // Get socket ID and emit message for online users
+//                     const socketId = await redisService.getUserSocketId(participantId);
+//                     if (socketId) {
+//                         req.app.io.to(socketId).emit('new_message', messageToSend);
+//                     }
+//                 } else {
+//                     // Increment unread count for offline users
+//                     await redisService.addUnreadMessage(participantId, chatRoomId);
+//                 }
+//             }
+//         }
+
+//         res.status(201).json({
+//             success: false,
+//             data: messageToSend
+//         });
+
+//     } catch (error) {
+//         console.error('Send message error:', error);
+//         res.status(500).json({
+//             success: false,
+//             error: 'Error sending message'
+//         });
+//     }
+// };
+
+
+// In your sendMessage function in chatController.js
+
 const sendMessage = async (req, res) => {
     try {
         const { chatRoomId, content } = req.body;
         const userId = req.user.id;
-        const files = req.files; // Array of uploaded files
+        const files = req.files;
 
         if (!chatRoomId || !content) {
             return res.status(400).json({
@@ -669,6 +663,7 @@ const sendMessage = async (req, res) => {
             });
         }
 
+        // Find chat room and verify participant
         const chatRoom = await ChatRoom.findOne({
             _id: chatRoomId,
             participants: userId
@@ -681,7 +676,7 @@ const sendMessage = async (req, res) => {
             });
         }
 
-        // Process file attachments if any
+        // Process attachments
         const attachments = files ? files.map(file => ({
             fileName: file.filename,
             originalName: file.originalname,
@@ -690,6 +685,7 @@ const sendMessage = async (req, res) => {
             fileUrl: `/uploads/${file.filename}`
         })) : [];
 
+        // Create and save message to DB
         const newMessage = new Message({
             chatRoom: chatRoomId,
             sender: userId,
@@ -701,9 +697,11 @@ const sendMessage = async (req, res) => {
 
         await newMessage.save();
 
+        // Populate sender details
         const populatedMessage = await Message.findById(newMessage._id)
             .populate('sender', 'name email');
 
+        // Update chat room
         await ChatRoom.findByIdAndUpdate(chatRoomId, {
             lastMessage: content,
             lastMessageTime: new Date()
@@ -713,6 +711,19 @@ const sendMessage = async (req, res) => {
             ...populatedMessage.toObject(),
             chatRoomId
         };
+
+        // Handle message delivery through Redis
+        // For each participant except the sender
+        for (const participantId of chatRoom.participants) {
+            if (participantId.toString() !== userId) {
+                await redisService.handleMessage(
+                    messageToSend,
+                    userId,
+                    participantId.toString(),
+                    req.app.io
+                );
+            }
+        }
 
         res.status(201).json({
             success: true,
@@ -727,6 +738,7 @@ const sendMessage = async (req, res) => {
         });
     }
 };
+
 
 const downloadFile = async (req, res) => {
     try {

@@ -3,6 +3,7 @@ import { Box, Typography, CircularProgress } from '@mui/material';
 import { styled } from '@mui/material/styles';
 import { MessageBubble, MessageInput } from './MessageInput';
 import ChatHeader from './ChatHeader';
+import { useChatContext } from '../../context/chatContext';
 
 const MessageContainer = styled(Box)(({ theme }) => ({
     flex: 1,
@@ -13,7 +14,8 @@ const MessageContainer = styled(Box)(({ theme }) => ({
     gap: theme.spacing(1)
 }));
 
-const ChatWindow = ({ chatRoom, socket, currentUser, onChatRoomUpdate }) => {
+const ChatWindow = ({ chatRoom, currentUser, onChatRoomUpdate }) => {
+    const { socket, sendMessage: contextSendMessage } = useChatContext();
     const [messages, setMessages] = useState([]);
     const [newMessage, setNewMessage] = useState('');
     const [loading, setLoading] = useState(true);
@@ -26,25 +28,37 @@ const ChatWindow = ({ chatRoom, socket, currentUser, onChatRoomUpdate }) => {
         if (chatRoom?._id) {
             setMessages([]);
             fetchMessages();
-            socket?.emit('join_room', chatRoom._id);
-            return () => socket?.emit('leave_room', chatRoom._id);
         }
-    }, [chatRoom?._id, socket]);
+    }, [chatRoom?._id]);
+
 
     useEffect(() => {
         if (!socket) return;
-
-        const handleNewMessage = (message) => {
-            setMessages(prev => {
-                return prev.some(m => m._id === message._id) 
-                    ? prev 
-                    : [...prev, message];
-            });
-            scrollToBottom();
+    
+        // Listen for new messages
+        socket.on('receive_message', (message) => {
+            console.log('Received new message:', message);
+            setMessages(prev => [
+                ...prev.filter(m => m._id !== message._id),
+                message
+            ]);
+        });
+    
+        // Listen for message sent confirmation
+        socket.on('message_sent', (data) => {
+            console.log('Message sent confirmation:', data);
+        });
+    
+        // Listen for errors
+        socket.on('error', (error) => {
+            console.error('Socket error:', error);
+        });
+    
+        return () => {
+            socket.off('receive_message');
+            socket.off('message_sent');
+            socket.off('error');
         };
-
-        socket.on('receive_message', handleNewMessage);
-        return () => socket.off('receive_message', handleNewMessage);
     }, [socket]);
 
     const fetchMessages = async () => {
@@ -77,44 +91,69 @@ const ChatWindow = ({ chatRoom, socket, currentUser, onChatRoomUpdate }) => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     };
 
+    // const sendMessage = async (e) => {
+    //     e.preventDefault();
+    //     if ((!newMessage.trim() && selectedFiles.length === 0) || sending) return;
+
+    //     try {
+    //         setSending(true);
+    //         const formData = new FormData();
+    //         formData.append('chatRoomId', chatRoom._id);
+    //         formData.append('content', newMessage.trim() || ' ');
+            
+    //         selectedFiles.forEach(file => {
+    //             formData.append('files', file);
+    //         });
+
+    //         const response = await fetch('http://localhost:5001/api/v1/chat/messages', {
+    //             method: 'POST',
+    //             headers: {
+    //                 'Authorization': `Bearer ${localStorage.getItem('token')}`
+    //             },
+    //             body: formData
+    //         });
+
+    //         const data = await response.json();
+    //         if (!response.ok) throw new Error(data.error || 'Failed to send message');
+
+    //         if (data.success) {
+    //             socket?.emit('send_message', data.data);
+    //             setNewMessage('');
+    //             setSelectedFiles([]);
+    //             setMessages(prev => [...prev, data.data]);
+    //             scrollToBottom();
+    //         }
+    //     } catch (error) {
+    //         console.error('Error sending message:', error);
+    //     } finally {
+    //         setSending(false);
+    //     }
+    // };
+
+
     const sendMessage = async (e) => {
         e.preventDefault();
         if ((!newMessage.trim() && selectedFiles.length === 0) || sending) return;
 
         try {
             setSending(true);
-            const formData = new FormData();
-            formData.append('chatRoomId', chatRoom._id);
-            formData.append('content', newMessage.trim() || ' ');
-            
-            selectedFiles.forEach(file => {
-                formData.append('files', file);
-            });
+            const message = await contextSendMessage(
+                chatRoom._id,
+                newMessage.trim(),
+                selectedFiles
+            );
 
-            const response = await fetch('http://localhost:5001/api/v1/chat/messages', {
-                method: 'POST',
-                headers: {
-                    'Authorization': `Bearer ${localStorage.getItem('token')}`
-                },
-                body: formData
-            });
-
-            const data = await response.json();
-            if (!response.ok) throw new Error(data.error || 'Failed to send message');
-
-            if (data.success) {
-                socket?.emit('send_message', data.data);
-                setNewMessage('');
-                setSelectedFiles([]);
-                setMessages(prev => [...prev, data.data]);
-                scrollToBottom();
-            }
+            setNewMessage('');
+            setSelectedFiles([]);
+            setMessages(prev => [...prev, message]);
+            scrollToBottom();
         } catch (error) {
             console.error('Error sending message:', error);
         } finally {
             setSending(false);
         }
     };
+
 
     const handleDownload = async (messageId, fileId) => {
         try {

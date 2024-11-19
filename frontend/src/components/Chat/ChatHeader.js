@@ -151,6 +151,41 @@ const ChatHeader = ({ chat, currentUser, onChatRoomUpdate }) => {
         [chat?.admins, currentUser._id]
     );
 
+    // const handleAddMembers = async (userId) => {
+    //     if (loadingStates.adding[userId]) return;
+        
+    //     setLoadingStates(prev => ({
+    //         ...prev,
+    //         adding: { ...prev.adding, [userId]: true }
+    //     }));
+        
+    //     try {
+    //         const response = await fetch(`http://localhost:5001/api/v1/chat/group/${chat._id}/participant`, {
+    //             method: 'POST',
+    //             headers: {
+    //                 'Content-Type': 'application/json',
+    //                 'Authorization': `Bearer ${localStorage.getItem('token')}`
+    //             },
+    //             body: JSON.stringify({ participantIds: [userId] })
+    //         });
+            
+    //         if (!response.ok) throw new Error('Failed to add member');
+            
+    //         const data = await response.json();
+    //         if (data.success) {
+    //             onChatRoomUpdate && onChatRoomUpdate(data.data);
+    //         }
+    //     } catch (error) {
+    //         console.error('Error adding member:', error);
+    //         alert('Failed to add member');
+    //     } finally {
+    //         setLoadingStates(prev => ({
+    //             ...prev,
+    //             adding: { ...prev.adding, [userId]: false }
+    //         }));
+    //     }
+    // };
+
     const handleAddMembers = async (userId) => {
         if (loadingStates.adding[userId]) return;
         
@@ -160,24 +195,29 @@ const ChatHeader = ({ chat, currentUser, onChatRoomUpdate }) => {
         }));
         
         try {
+            // The API expects an array of participantIds
             const response = await fetch(`http://localhost:5001/api/v1/chat/group/${chat._id}/participant`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                     'Authorization': `Bearer ${localStorage.getItem('token')}`
                 },
-                body: JSON.stringify({ participantIds: [userId] })
+                body: JSON.stringify({ participantIds: [userId] }) // Ensure participantIds is an array
             });
             
-            if (!response.ok) throw new Error('Failed to add member');
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.error || 'Failed to add member');
+            }
             
             const data = await response.json();
             if (data.success) {
                 onChatRoomUpdate && onChatRoomUpdate(data.data);
+                setShowAddMembers(false); // Close the dialog after successful addition
             }
         } catch (error) {
             console.error('Error adding member:', error);
-            alert('Failed to add member');
+            alert(error.message || 'Failed to add member');
         } finally {
             setLoadingStates(prev => ({
                 ...prev,

@@ -437,34 +437,100 @@ const updateGroupChat = async (req, res) => {
 //     }
 // };
 
+// const searchUsers = async (req, res) => {
+//     try {
+//         const { term } = req.query;
+        
+//         console.log('Search term received:', term);
+
+//         if (!term) {
+//             console.log('No search term provided, returning empty array');
+//             return res.json({
+//                 success: true,
+//                 data: []
+//             });
+//         }
+
+//         // Change the search query to look for name or email instead of IDs
+//         const users = await User.find({
+//             $and: [
+//                 {
+//                     $or: [
+//                         { name: { $regex: term, $options: 'i' } },
+//                         { email: { $regex: term, $options: 'i' } }
+//                     ]
+//                 },
+//                 { _id: { $ne: req.user.id } }
+//             ]
+//         }).select('name email isOnline lastActive');
+
+//         // Get online status for each user from Redis
+//         const formattedUsers = await Promise.all(users.map(async user => {
+//             const isOnline = await redisService.isUserOnline(user._id.toString());
+//             const lastActive = await redisService.getUserLastActive(user._id.toString());
+            
+//             return {
+//                 _id: user._id.toString(),
+//                 name: user.name || 'Unknown',
+//                 email: user.email || '',
+//                 isOnline: isOnline,
+//                 lastActive: lastActive || user.lastActive || null
+//             };
+//         }));
+
+//         console.log('Found users:', users.length);
+//         console.log('Formatted users with online status:', formattedUsers);
+
+//         res.json({
+//             success: true,
+//             data: formattedUsers
+//         });
+        
+//     } catch (error) {
+//         console.error('Search users error:', error);
+//         res.status(500).json({ 
+//             success: false,
+//             error: error.message || 'Server error',
+//             data: []
+//         });
+//     }
+// };
+
 const searchUsers = async (req, res) => {
     try {
-        const { term } = req.query;
-        
-        console.log('Search term received:', term);
+        const { term, query } = req.query;
+        console.log('Search query received:', { term, query });
 
-        if (!term) {
-            console.log('No search term provided, returning empty array');
+        if (!term && !query) {
             return res.json({
                 success: true,
                 data: []
             });
         }
 
-        // Change the search query to look for name or email instead of IDs
-        const users = await User.find({
-            $and: [
-                {
-                    $or: [
-                        { name: { $regex: term, $options: 'i' } },
-                        { email: { $regex: term, $options: 'i' } }
-                    ]
-                },
-                { _id: { $ne: req.user.id } }
-            ]
-        }).select('name email isOnline lastActive');
+        let users;
+        if (term && term.includes(',')) {
+            // Handle ID-based search
+            const userIds = term.split(',');
+            users = await User.find({
+                _id: { $in: userIds }
+            }).select('name email isOnline lastActive');
+        } else {
+            // Handle text-based search
+            const searchTerm = query || term;
+            users = await User.find({
+                $and: [
+                    {
+                        $or: [
+                            { name: { $regex: searchTerm, $options: 'i' } },
+                            { email: { $regex: searchTerm, $options: 'i' } }
+                        ]
+                    },
+                    { _id: { $ne: req.user.id } }
+                ]
+            }).select('name email isOnline lastActive');
+        }
 
-        // Get online status for each user from Redis
         const formattedUsers = await Promise.all(users.map(async user => {
             const isOnline = await redisService.isUserOnline(user._id.toString());
             const lastActive = await redisService.getUserLastActive(user._id.toString());
@@ -478,8 +544,7 @@ const searchUsers = async (req, res) => {
             };
         }));
 
-        console.log('Found users:', users.length);
-        console.log('Formatted users with online status:', formattedUsers);
+        console.log(`Found ${users.length} users`);
 
         res.json({
             success: true,

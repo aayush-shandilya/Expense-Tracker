@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Box, Typography, CircularProgress,Badge,Avatar } from '@mui/material';
+import { Box, Typography, CircularProgress, Badge, Avatar } from '@mui/material';
 import { styled } from '@mui/material/styles';
 import { MessageBubble, MessageInput } from './MessageInput';
 import ChatHeader from './ChatHeader';

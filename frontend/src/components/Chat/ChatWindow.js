@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Box, Typography, CircularProgress } from '@mui/material';
+import { Box, Typography, CircularProgress,Badge,Avatar } from '@mui/material';
 import { styled } from '@mui/material/styles';
 import { MessageBubble, MessageInput } from './MessageInput';
 import ChatHeader from './ChatHeader';
@@ -14,9 +14,39 @@ const MessageContainer = styled(Box)(({ theme }) => ({
     gap: theme.spacing(1)
 }));
 
+const OnlineBadge = styled(Badge)(({ theme }) => ({
+    '& .MuiBadge-badge': {
+        backgroundColor: '#44b700',
+        color: '#44b700',
+        boxShadow: `0 0 0 2px ${theme.palette.background.paper}`,
+        '&::after': {
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            width: '100%',
+            height: '100%',
+            borderRadius: '50%',
+            animation: 'ripple 1.2s infinite ease-in-out',
+            border: '1px solid currentColor',
+            content: '""',
+        },
+    },
+    '@keyframes ripple': {
+        '0%': {
+            transform: 'scale(.8)',
+            opacity: 1,
+        },
+        '100%': {
+            transform: 'scale(2.4)',
+            opacity: 0,
+        },
+    },
+}));
+
 const ChatWindow = ({ chatRoom, currentUser, onChatRoomUpdate }) => {
     const { socket, sendMessage: contextSendMessage } = useChatContext();
     const [messages, setMessages] = useState([]);
+    const [participants, setParticipants] = useState([]);
     const [newMessage, setNewMessage] = useState('');
     const [loading, setLoading] = useState(true);
     const [sending, setSending] = useState(false);
@@ -28,14 +58,13 @@ const ChatWindow = ({ chatRoom, currentUser, onChatRoomUpdate }) => {
         if (chatRoom?._id) {
             setMessages([]);
             fetchMessages();
+            updateParticipantsStatus();
         }
     }, [chatRoom?._id]);
-
 
     useEffect(() => {
         if (!socket) return;
     
-        // Listen for new messages
         socket.on('receive_message', (message) => {
             console.log('Received new message:', message);
             setMessages(prev => [
@@ -44,22 +73,45 @@ const ChatWindow = ({ chatRoom, currentUser, onChatRoomUpdate }) => {
             ]);
         });
     
-        // Listen for message sent confirmation
-        socket.on('message_sent', (data) => {
-            console.log('Message sent confirmation:', data);
-        });
-    
-        // Listen for errors
-        socket.on('error', (error) => {
-            console.error('Socket error:', error);
+        socket.on('user_status_changed', ({ userId, isOnline }) => {
+            setParticipants(prev => prev.map(participant => {
+                if (participant._id === userId) {
+                    return { ...participant, isOnline };
+                }
+                return participant;
+            }));
         });
     
         return () => {
             socket.off('receive_message');
-            socket.off('message_sent');
+            socket.off('user_status_changed');
             socket.off('error');
         };
     }, [socket]);
+
+    const updateParticipantsStatus = async () => {
+        if (!chatRoom?.participants) return;
+        
+        try {
+            const response = await fetch(
+                `http://localhost:5001/api/v1/chat/users/search?term=${chatRoom.participants.map(p => p._id).join(',')}`,
+                {
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('token')}`
+                    }
+                }
+            );
+            
+            if (!response.ok) throw new Error('Failed to fetch participants status');
+            
+            const data = await response.json();
+            if (data.success) {
+                setParticipants(data.data);
+            }
+        } catch (error) {
+            console.error('Error fetching participants status:', error);
+        }
+    };
 
     const fetchMessages = async () => {
         try {
@@ -90,47 +142,7 @@ const ChatWindow = ({ chatRoom, currentUser, onChatRoomUpdate }) => {
     const scrollToBottom = () => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     };
-
-    // const sendMessage = async (e) => {
-    //     e.preventDefault();
-    //     if ((!newMessage.trim() && selectedFiles.length === 0) || sending) return;
-
-    //     try {
-    //         setSending(true);
-    //         const formData = new FormData();
-    //         formData.append('chatRoomId', chatRoom._id);
-    //         formData.append('content', newMessage.trim() || ' ');
-            
-    //         selectedFiles.forEach(file => {
-    //             formData.append('files', file);
-    //         });
-
-    //         const response = await fetch('http://localhost:5001/api/v1/chat/messages', {
-    //             method: 'POST',
-    //             headers: {
-    //                 'Authorization': `Bearer ${localStorage.getItem('token')}`
-    //             },
-    //             body: formData
-    //         });
-
-    //         const data = await response.json();
-    //         if (!response.ok) throw new Error(data.error || 'Failed to send message');
-
-    //         if (data.success) {
-    //             socket?.emit('send_message', data.data);
-    //             setNewMessage('');
-    //             setSelectedFiles([]);
-    //             setMessages(prev => [...prev, data.data]);
-    //             scrollToBottom();
-    //         }
-    //     } catch (error) {
-    //         console.error('Error sending message:', error);
-    //     } finally {
-    //         setSending(false);
-    //     }
-    // };
-
-
+    
     const sendMessage = async (e) => {
         e.preventDefault();
         if ((!newMessage.trim() && selectedFiles.length === 0) || sending) return;
@@ -220,6 +232,71 @@ const ChatWindow = ({ chatRoom, currentUser, onChatRoomUpdate }) => {
             </Box>
         );
     }
+
+//     return (
+//         <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+//             <ChatHeader 
+//                 chat={chatRoom} 
+//                 currentUser={currentUser}
+//                 onChatRoomUpdate={onChatRoomUpdate}
+//                 participants={participants}
+//             />
+//             <MessageContainer>
+//                 {messages.map((message) => {
+//                     const isOwn = message.sender._id === currentUser._id;
+//                     const participant = participants.find(p => p._id === message.sender._id);
+//                     return (
+//                         <Box key={message._id} 
+//                             sx={{ 
+//                                 display: 'flex', 
+//                                 alignItems: 'center', 
+//                                 gap: 1,
+//                                 justifyContent: isOwn ? 'flex-end' : 'flex-start',
+//                                 flexDirection: isOwn ? 'row-reverse' : 'row'
+//                             }}
+//                         >
+//                             <OnlineBadge
+//                                 overlap="circular"
+//                                 anchorOrigin={{ vertical: 'bottom', horizontal: isOwn ? 'left' : 'right'  }}
+//                                 variant="dot"
+//                                 invisible={!participant?.isOnline}
+//                             >
+//                                 <Avatar>{message.sender.name[0]}</Avatar>
+//                             </OnlineBadge>
+//                             <Box 
+//                                 sx={{ 
+//                                     maxWidth: '70%',
+//                                     display: 'flex',
+//                                     flexDirection: 'column',
+//                                     alignItems: isOwn ? 'flex-end' : 'flex-start'
+//                                 }}
+//                             >
+//                             <MessageBubble
+//                                 message={message}
+//                                 isOwn={message.sender._id === currentUser._id}
+//                                 onDownload={handleDownload}
+//                             />
+//                             </Box>
+//                         </Box>
+//                     );
+//                 })}
+//                 <div ref={messagesEndRef} />
+//             </MessageContainer>
+//             <MessageInput
+//                 newMessage={newMessage}
+//                 setNewMessage={setNewMessage}
+//                 sending={sending}
+//                 selectedFiles={selectedFiles}
+//                 setSelectedFiles={setSelectedFiles}
+//                 fileInputRef={fileInputRef}
+//                 handleSubmit={sendMessage}
+//             />
+//         </Box>
+//     );
+// };
+
+// export default ChatWindow;
+
 
     return (
         <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>

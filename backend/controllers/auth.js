@@ -182,6 +182,8 @@
 
 const User = require('../models/UserModel');
 const jwt = require('jsonwebtoken');
+const redisService = require('../services/redisService'); // Add this import
+
 
 const generateToken = (id) => {
     return jwt.sign({ id }, process.env.JWT_SECRET, {
@@ -391,25 +393,137 @@ exports.validateToken = async (req, res) => {
 };
 
 exports.searchUsers = async (req, res) => {
+//     try {
+//         const { term } = req.query;
+        
+//         console.log('Search term received:', term);
+
+//         if (!term) {
+//             return res.json({
+//                 success: true,
+//                 data: []
+//             });
+//         }
+
+//         // First get users from MongoDB
+//         const users = await User.find({
+//             $and: [
+//                 {
+//                     $or: [
+//                         { name: { $regex: term, $options: 'i' } },
+//                         { email: { $regex: term, $options: 'i' } }
+//                     ]
+//                 },
+//                 { _id: { $ne: req.user.id } } // Exclude current user
+//             ]
+//         }).select('name email isOnline lastActive');
+
+//         console.log('Found users:', users.length);
+
+//         // Then enrich with Redis online status
+//         const formattedUsers = await Promise.all(users.map(async user => {
+//             try {
+//                 const isOnline = await redisService.isUserInRedis(user._id.toString());
+//                 const userKey = `user:${user._id.toString()}`;
+//                 const lastActive = await redisService.redis.hget(userKey, 'lastActive');
+                
+//                 return {
+//                     _id: user._id.toString(),
+//                     name: user.name || 'Unknown',
+//                     email: user.email || '',
+//                     isOnline: isOnline,
+//                     lastActive: lastActive || user.lastActive || null
+//                 };
+//             } catch (error) {
+//                 console.error(`Error getting status for user ${user._id}:`, error);
+//                 return {
+//                     _id: user._id.toString(),
+//                     name: user.name || 'Unknown',
+//                     email: user.email || '',
+//                     isOnline: false,
+//                     lastActive: user.lastActive || null
+//                 };
+//             }
+//         }));
+
+//         console.log('Formatted users with online status:', formattedUsers);
+
+//         res.json({
+//             success: true,
+//             data: formattedUsers
+//         });
+//     } catch (error) {
+//         console.error('Search users error:', error);
+//         res.status(500).json({ 
+//             success: false,
+//             error: error.message || 'Server error',
+//             data: []
+//         });
+//     }
+// };
+
     try {
         const { term } = req.query;
+        
+        console.log('Search term received:', term);
+
+        if (!term) {
+            return res.json({
+                success: true,
+                data: []
+            });
+        }
+
+        // Get users from MongoDB
         const users = await User.find({
-            name: { $regex: term, $options: 'i' },
-            _id: { $ne: req.user.id }
+            $and: [
+                {
+                    $or: [
+                        { name: { $regex: term, $options: 'i' } },
+                        { email: { $regex: term, $options: 'i' } }
+                    ]
+                },
+                { _id: { $ne: req.user.id } }
+            ]
         }).select('name email isOnline lastActive');
+
+        // Get bulk online status from Redis
+        const userIds = users.map(user => user._id.toString());
+        const onlineStatuses = await redisService.getBulkOnlineStatus(userIds);
+
+        // Combine MongoDB data with Redis online status
+        const formattedUsers = users.map(user => {
+            const userId = user._id.toString();
+            const onlineStatus = onlineStatuses[userId] || { 
+                isOnline: false, 
+                lastActive: null 
+            };
+
+            return {
+                _id: userId,
+                name: user.name || 'Unknown',
+                email: user.email || '',
+                isOnline: onlineStatus.isOnline,
+                lastActive: onlineStatus.lastActive || user.lastActive || null
+            };
+        });
+
+        console.log(`Found ${formattedUsers.length} users for search term: ${term}`);
         
         res.json({
             success: true,
-            data: users
+            data: formattedUsers
         });
+        
     } catch (error) {
+        console.error('Search users error:', error);
         res.status(500).json({ 
             success: false,
-            error: error.message 
+            error: error.message || 'Server error',
+            data: []
         });
     }
 };
-
 // Add update online status middleware
 exports.updateOnlineStatus = async (req, res, next) => {
     try {

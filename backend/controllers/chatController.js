@@ -327,20 +327,131 @@ const updateGroupChat = async (req, res) => {
     }
 };
 
+// const searchUsers = async (req, res) => {
+//     try {
+//         const { term } = req.query;
+        
+//         console.log('Search term received:', term); // Debug log
+
+//         if (!term) {
+//             console.log('No search term provided, returning empty array'); // Debug log
+//             return res.json({
+//                 success: true,
+//                 data: []
+//             });
+//         }
+
+//         const users = await User.find({
+//             $and: [
+//                 {
+//                     $or: [
+//                         { name: { $regex: term, $options: 'i' } },
+//                         { email: { $regex: term, $options: 'i' } }
+//                     ]
+//                 },
+//                 { _id: { $ne: req.user.id } }
+//             ]
+//         }).select('name email isOnline lastActive');
+
+//         console.log('Found users:', users); // Debug log
+
+//         // Ensure we're sending an array and transform the data
+//         const formattedUsers = users.map(user => ({
+//             _id: user._id.toString(),
+//             name: user.name || 'Unknown',
+//             email: user.email || '',
+//             isOnline: !!user.isOnline,
+//             lastActive: user.lastActive || new Date()
+//         }));
+
+//         console.log('Formatted users:', formattedUsers); // Debug log
+
+//         res.json({
+//             success: true,
+//             data: formattedUsers
+//         });
+        
+//     } catch (error) {
+//         console.error('Search users error:', error);
+//         res.status(500).json({ 
+//             success: false,
+//             error: error.message || 'Server error',
+//             data: []
+//         });
+//     }
+// };
+
+// const searchUsers = async (req, res) => {
+//     try {
+//         const { term } = req.query;
+        
+//         console.log('Search term received:', term);
+
+//         if (!term) {
+//             console.log('No search term provided, returning empty array');
+//             return res.json({
+//                 success: true,
+//                 data: []
+//             });
+//         }
+
+//         const users = await User.find({
+//             $and: [
+//                 {
+//                     $or: [
+//                         { name: { $regex: term, $options: 'i' } },
+//                         { email: { $regex: term, $options: 'i' } }
+//                     ]
+//                 },
+//                 { _id: { $ne: req.user.id } }
+//             ]
+//         }).select('name email isOnline lastActive');
+
+//         // Get online status from Redis for each user
+//         const formattedUsers = await Promise.all(users.map(async user => {
+//             const isOnline = await redisService.isUserOnline(user._id.toString());
+            
+//             return {
+//                 _id: user._id.toString(),
+//                 name: user.name || 'Unknown',
+//                 email: user.email || '',
+//                 isOnline: isOnline,
+//                 lastActive: user.lastActive || new Date()
+//             };
+//         }));
+
+//         console.log('Formatted users with online status:', formattedUsers);
+
+//         res.json({
+//             success: true,
+//             data: formattedUsers
+//         });
+        
+//     } catch (error) {
+//         console.error('Search users error:', error);
+//         res.status(500).json({ 
+//             success: false,
+//             error: error.message || 'Server error',
+//             data: []
+//         });
+//     }
+// };
+
 const searchUsers = async (req, res) => {
     try {
         const { term } = req.query;
         
-        console.log('Search term received:', term); // Debug log
+        console.log('Search term received:', term);
 
         if (!term) {
-            console.log('No search term provided, returning empty array'); // Debug log
+            console.log('No search term provided, returning empty array');
             return res.json({
                 success: true,
                 data: []
             });
         }
 
+        // Change the search query to look for name or email instead of IDs
         const users = await User.find({
             $and: [
                 {
@@ -353,18 +464,22 @@ const searchUsers = async (req, res) => {
             ]
         }).select('name email isOnline lastActive');
 
-        console.log('Found users:', users); // Debug log
-
-        // Ensure we're sending an array and transform the data
-        const formattedUsers = users.map(user => ({
-            _id: user._id.toString(),
-            name: user.name || 'Unknown',
-            email: user.email || '',
-            isOnline: !!user.isOnline,
-            lastActive: user.lastActive || new Date()
+        // Get online status for each user from Redis
+        const formattedUsers = await Promise.all(users.map(async user => {
+            const isOnline = await redisService.isUserOnline(user._id.toString());
+            const lastActive = await redisService.getUserLastActive(user._id.toString());
+            
+            return {
+                _id: user._id.toString(),
+                name: user.name || 'Unknown',
+                email: user.email || '',
+                isOnline: isOnline,
+                lastActive: lastActive || user.lastActive || null
+            };
         }));
 
-        console.log('Formatted users:', formattedUsers); // Debug log
+        console.log('Found users:', users.length);
+        console.log('Formatted users with online status:', formattedUsers);
 
         res.json({
             success: true,

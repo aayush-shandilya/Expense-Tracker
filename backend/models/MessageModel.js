@@ -60,6 +60,11 @@ const messageSchema = new mongoose.Schema({
         type: String,
         required: true
     },
+    messageType: {
+        type: String,
+        enum: ['regular', 'customer_service', 'bot_response'],
+        default: 'regular'
+    },
     timestamp: {
         type: Date,
         default: Date.now

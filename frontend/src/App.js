@@ -14,6 +14,8 @@ import Income from './components/income/Income';
 import Expenses from './components/Expenses/Expenses';
 import ExpensesCategory from './components/ExpensesComponents/ExpenseCategory';
 import ChatLayout from './components/Chat/ChatLayout';
+import { CustomerServiceProvider } from './context/CustomerServiceContext';
+import CustomerServiceChat from './components/CustomerServiceChat/CustomerServiceChat';
 import Login from './components/Login/Login';
 import bg from './img/bg.png';
 
@@ -84,76 +86,172 @@ const GridContainer = styled(Grid)({
     width: '100%',
 });
 
-// Protected Route Component remains the same
+// // Protected Route Component remains the same
+// const ProtectedRoute = ({ children }) => {
+//   const { user, loading } = useAuth();
+  
+//   if (loading) return <div>Loading...</div>;
+//   if (!user) return <Navigate to="/login" />;
+//   //return children;
+//   return React.cloneElement(children, { user });
+// };
+
 const ProtectedRoute = ({ children }) => {
   const { user, loading } = useAuth();
   
   if (loading) return <div>Loading...</div>;
   if (!user) return <Navigate to="/login" />;
-  return children;
+  return React.cloneElement(children, { user });
 };
 
 // Main Layout Component with Chat integration
-const MainAppLayout = () => {
-    const [active, setActive] = useState(1);
+// const MainAppLayout = () => {
+//     const [active, setActive] = useState(1);
   
-    const displayData = () => {
-      switch (active) {
-        case 1:
-        case 2:
-          return <Dashboard />;
-        case 3:
-          return <Income />;
-        case 4:
-          return <Expenses />;
-        case 5:
-          return <ExpensesCategory />;
-        case 6:  // New case for Chat
-          return <ChatLayout />;
-        default:
-          return <Dashboard />;
-      }
-    };
-  
-    return (
-        <AppWrapper>
-          <TopNavbar />
-          <MainContentWrapper>
-            <GridContainer container>
-              <Grid 
-                item 
-                xs={NAV_COLUMNS} 
-                style={{ 
-                  height: '100%',
-                  paddingRight: COMPONENT_MARGIN
-                }}
-              >
-                <Navigation
-                  active={active}
-                  setActive={setActive}
-                  BaseContainer={BaseContainer}
-                />
-              </Grid>
-              <Grid 
-                item 
-                xs={CONTENT_COLUMNS} 
-                style={{ height: '100%' }}
-              >
-                <ContentArea>
-                  {displayData()}
-                </ContentArea>
-              </Grid>
-            </GridContainer>
-          </MainContentWrapper>
-        </AppWrapper>
-      );
-    };
+//     const displayData = () => {
+//       switch (active) {
+//         case 1:
+//         case 2:
+//           return <Dashboard />;
+//         case 3:
+//           return <Income />;
+//         case 4:
+//           return <Expenses />;
+//         case 5:
+//           return <ExpensesCategory />;
+//         case 6:  
+//           return <ChatLayout />;
+//         case 7: 
+//           return <CustomerServiceChat currentUser={user} />;
+//         default:
+//           return <Dashboard />;
+//       }
+//     };
+
+//     return (
+//       <AppWrapper>
+//         <TopNavbar />
+//         <MainContentWrapper>
+//           <GridContainer container>
+//             <Grid 
+//               item 
+//               xs={NAV_COLUMNS} 
+//               style={{ 
+//                 height: '100%',
+//                 paddingRight: COMPONENT_MARGIN
+//               }}
+//             >
+//               <Navigation
+//                 active={active}
+//                 setActive={setActive}
+//                 BaseContainer={BaseContainer}
+//               />
+//             </Grid>
+//             <Grid 
+//               item 
+//               xs={CONTENT_COLUMNS} 
+//               style={{ height: '100%' }}
+//             >
+//               <ContentArea>
+//                 {displayData()}
+//               </ContentArea>
+//             </Grid>
+//           </GridContainer>
+//         </MainContentWrapper>
+//       </AppWrapper>
+//     );
+//   };
+
+// function App() {
+// return (
+//   <Router>
+//     <AuthProvider>
+//       <ChatProvider>
+//         <CustomerServiceProvider>
+//           <Routes>
+//             <Route path="/login" element={<Login />} />
+//             <Route
+//               path="/*"
+//               element={
+//                 <ProtectedRoute>
+//                   <MainAppLayout />
+//                 </ProtectedRoute>
+//               }
+//             />
+//           </Routes>
+//         </CustomerServiceProvider>
+//       </ChatProvider>
+//     </AuthProvider>
+//   </Router>
+// );
+// }
+
+// export default App;
+
+
+const MainAppLayout = ({ user }) => {
+  const [active, setActive] = useState(1);
+
+  const displayData = () => {
+    switch (active) {
+      case 1:
+      case 2:
+        return <Dashboard />;
+      case 3:
+        return <Income />;
+      case 4:
+        return <Expenses />;
+      case 5:
+        return <ExpensesCategory />;
+      case 6:  
+        return <ChatLayout />;
+      case 7: 
+        return <CustomerServiceChat currentUser={user} />;
+      default:
+        return <Dashboard />;
+    }
+  };
+
+  return (
+    <AppWrapper>
+      <TopNavbar />
+      <MainContentWrapper>
+        <GridContainer container>
+          <Grid 
+            item 
+            xs={NAV_COLUMNS} 
+            style={{ 
+              height: '100%',
+              paddingRight: COMPONENT_MARGIN
+            }}
+          >
+            <Navigation
+              active={active}
+              setActive={setActive}
+              BaseContainer={BaseContainer}
+            />
+          </Grid>
+          <Grid 
+            item 
+            xs={CONTENT_COLUMNS} 
+            style={{ height: '100%' }}
+          >
+            <ContentArea>
+              {displayData()}
+            </ContentArea>
+          </Grid>
+        </GridContainer>
+      </MainContentWrapper>
+    </AppWrapper>
+  );
+};
 
 function App() {
-  return (
-    <Router>
-      <AuthProvider>
-        <ChatProvider>
+return (
+  <Router>
+    <AuthProvider>
+      <ChatProvider>
+        <CustomerServiceProvider>
           <Routes>
             <Route path="/login" element={<Login />} />
             <Route
@@ -165,10 +263,71 @@ function App() {
               }
             />
           </Routes>
-        </ChatProvider>
-      </AuthProvider>
-    </Router>
-  );
+        </CustomerServiceProvider>
+      </ChatProvider>
+    </AuthProvider>
+  </Router>
+);
 }
 
 export default App;
+
+
+  
+//     return (
+//         <AppWrapper>
+//           <TopNavbar />
+//           <MainContentWrapper>
+//             <GridContainer container>
+//               <Grid 
+//                 item 
+//                 xs={NAV_COLUMNS} 
+//                 style={{ 
+//                   height: '100%',
+//                   paddingRight: COMPONENT_MARGIN
+//                 }}
+//               >
+//                 <Navigation
+//                   active={active}
+//                   setActive={setActive}
+//                   BaseContainer={BaseContainer}
+//                 />
+//               </Grid>
+//               <Grid 
+//                 item 
+//                 xs={CONTENT_COLUMNS} 
+//                 style={{ height: '100%' }}
+//               >
+//                 <ContentArea>
+//                   {displayData()}
+//                 </ContentArea>
+//               </Grid>
+//             </GridContainer>
+//           </MainContentWrapper>
+//         </AppWrapper>
+//       );
+//     };
+
+// function App() {
+//   return (
+//     <Router>
+//       <AuthProvider>
+//         <ChatProvider>
+//           <Routes>
+//             <Route path="/login" element={<Login />} />
+//             <Route
+//               path="/*"
+//               element={
+//                 <ProtectedRoute>
+//                   <MainAppLayout />
+//                 </ProtectedRoute>
+//               }
+//             />
+//           </Routes>
+//         </ChatProvider>
+//       </AuthProvider>
+//     </Router>
+//   );
+// }
+
+// export default App;

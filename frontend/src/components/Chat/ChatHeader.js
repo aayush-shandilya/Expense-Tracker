@@ -151,40 +151,6 @@ const ChatHeader = ({ chat, currentUser, onChatRoomUpdate }) => {
         [chat?.admins, currentUser._id]
     );
 
-    // const handleAddMembers = async (userId) => {
-    //     if (loadingStates.adding[userId]) return;
-        
-    //     setLoadingStates(prev => ({
-    //         ...prev,
-    //         adding: { ...prev.adding, [userId]: true }
-    //     }));
-        
-    //     try {
-    //         const response = await fetch(`http://localhost:5001/api/v1/chat/group/${chat._id}/participant`, {
-    //             method: 'POST',
-    //             headers: {
-    //                 'Content-Type': 'application/json',
-    //                 'Authorization': `Bearer ${localStorage.getItem('token')}`
-    //             },
-    //             body: JSON.stringify({ participantIds: [userId] })
-    //         });
-            
-    //         if (!response.ok) throw new Error('Failed to add member');
-            
-    //         const data = await response.json();
-    //         if (data.success) {
-    //             onChatRoomUpdate && onChatRoomUpdate(data.data);
-    //         }
-    //     } catch (error) {
-    //         console.error('Error adding member:', error);
-    //         alert('Failed to add member');
-    //     } finally {
-    //         setLoadingStates(prev => ({
-    //             ...prev,
-    //             adding: { ...prev.adding, [userId]: false }
-    //         }));
-    //     }
-    // };
 
     const handleAddMembers = async (userId) => {
         if (loadingStates.adding[userId]) return;

@@ -266,6 +266,160 @@ io.on('connection', async (socket) => {
 });
 
 
+app.use('/api/v1/customer-service', protect, require('./routes/customerServiceRoutes'));
+
+// Add these socket handlers in your socket.io connection block
+io.on('connection', async (socket) => {
+    // ... your existing socket handlers ...
+
+    // Customer service specific handlers
+    socket.on('join_customer_service', async (userId) => {
+        try {
+            if (!socket.userId) {
+                throw new Error('Not authenticated');
+            }
+
+            // Find or create customer service chat room
+            let customerServiceChat = await ChatRoom.findOne({
+                type: 'customer_service',
+                participants: socket.userId
+            });
+
+            if (!customerServiceChat) {
+                const botUser = await User.findOne({ role: 'bot' });
+                if (!botUser) {
+                    throw new Error('Customer service bot not found');
+                }
+
+                customerServiceChat = await ChatRoom.create({
+                    type: 'customer_service',
+                    name: 'Customer Service',
+                    participants: [socket.userId, botUser._id],
+                    botId: botUser._id,
+                    createdBy: socket.userId
+                });
+            }
+
+            socket.join(`chat:${customerServiceChat._id}`);
+            socket.emit('customer_service_joined', {
+                chatId: customerServiceChat._id,
+                botId: customerServiceChat.botId
+            });
+
+        } catch (error) {
+            console.error('Error joining customer service:', error);
+            socket.emit('error', { message: 'Failed to join customer service chat' });
+        }
+    });
+
+    socket.on('customer_service_message', async (data) => {
+        try {
+            if (!socket.userId) {
+                throw new Error('Not authenticated');
+            }
+
+            const { chatId, content } = data;
+
+            // Validate chat room
+            const chatRoom = await ChatRoom.findOne({
+                _id: chatId,
+                type: 'customer_service',
+                participants: socket.userId
+            });
+
+            if (!chatRoom) {
+                throw new Error('Customer service chat not found');
+            }
+
+            // Create user message
+            const userMessage = await Message.create({
+                chatRoom: chatId,
+                sender: socket.userId,
+                content,
+                messageType: 'customer_service',
+                timestamp: new Date()
+            });
+
+            // Generate bot response
+            const botResponse = await generateBotResponse(content);
+            
+            // Create bot message
+            const botMessage = await Message.create({
+                chatRoom: chatId,
+                sender: chatRoom.botId,
+                content: botResponse,
+                messageType: 'bot_response',
+                timestamp: new Date()
+            });
+
+            // Populate messages
+            const populatedUserMessage = await Message.findById(userMessage._id)
+                .populate('sender', 'name email');
+            const populatedBotMessage = await Message.findById(botMessage._id)
+                .populate('sender', 'name email');
+
+            // Update chat room
+            await ChatRoom.findByIdAndUpdate(chatId, {
+                lastMessage: botResponse,
+                lastMessageTime: new Date()
+            });
+
+            // Emit messages
+            io.to(`chat:${chatId}`).emit('receive_message', populatedUserMessage);
+            io.to(`chat:${chatId}`).emit('receive_message', populatedBotMessage);
+
+        } catch (error) {
+            console.error('Error in customer service message:', error);
+            socket.emit('error', { message: error.message });
+        }
+    });
+});
+
+// Add bot response generator function
+const generateBotResponse = async (message) => {
+    const lowercaseMessage = message.toLowerCase();
+    
+    // Simple response mapping - you can enhance this
+    const responses = {
+        'hello': 'Hi! How can I assist you today?',
+        'hi': 'Hello! What can I help you with?',
+        'help': 'I\'m here to help! What do you need assistance with?',
+        'thanks': 'You\'re welcome! Is there anything else you need?',
+        'bye': 'Goodbye! Have a great day!'
+    };
+
+    // Check for keywords in the message
+    for (const [key, response] of Object.entries(responses)) {
+        if (lowercaseMessage.includes(key)) {
+            return response;
+        }
+    }
+
+    // Default response
+    return "I understand you need help. Could you please provide more details about your question?";
+};
+
+// Initialize bot user on server start
+const initializeBot = async () => {
+    try {
+        const botExists = await User.findOne({ role: 'bot' });
+        if (!botExists) {
+            await User.create({
+                name: 'Customer Service Bot',
+                email: 'bot@yourapp.com',
+                password: require('crypto').randomBytes(32).toString('hex'),
+                role: 'bot'
+            });
+            console.log('Bot user initialized successfully');
+        }
+    } catch (error) {
+        console.error('Error initializing bot user:', error);
+    }
+};
+
+
+
+
 // Routes
 app.use('/api/v1/auth', require('./routes/auth'));
 app.use('/api/v1/transactions', protect, require('./routes/transaction'));
@@ -324,6 +478,11 @@ const server = async () => {
         process.exit(1);
     }
 };
+
+
+
+
+
 
 server();
 
